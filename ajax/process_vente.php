@@ -21,6 +21,13 @@ try {
     
     $id_client = !empty($_POST['id_client']) ? intval($_POST['id_client']) : null;
     
+    // Récupérer le mode de paiement
+    $mode_paiement = !empty($_POST['mode_paiement']) ? $_POST['mode_paiement'] : 'especes';
+    $modes_valides = ['especes', 'carte', 'mobile_money', 'cheque', 'credit'];
+    if (!in_array($mode_paiement, $modes_valides)) {
+        throw new Exception('Mode de paiement invalide');
+    }
+    
     // Vérifier le stock pour chaque produit
     $stocks = [];
     foreach ($cart as $item) {
@@ -54,14 +61,23 @@ try {
     
     // Calculer les montants
     // Le prix saisi est TTC (inclut TVA 16%)
+    // Total TTC = somme directe des prix (ne pas recalculer)
     $montant_total = 0;
+    $montant_tva_total = 0;
+    
     foreach ($cart as $item) {
-        $montant_total += $item['prix'] * $item['quantite'];
+        $prix_ttc = $item['prix'] * $item['quantite'];
+        $montant_total += $prix_ttc;
+        
+        // TVA extraite de chaque article
+        $prix_ht = $prix_ttc / 1.16;
+        $tva_article = $prix_ttc - $prix_ht;
+        $montant_tva_total += $tva_article;
     }
     
-    // Extraire TVA du TTC
-    $montant_ht = round($montant_total / 1.16, 2);
-    $montant_tva = round($montant_total - $montant_ht, 2);
+    // HT = TTC - TVA
+    $montant_ht = round($montant_total - $montant_tva_total, 2);
+    $montant_tva = round($montant_tva_total, 2);
     $montant_remise = 0; // TODO: Ajouter support des remises
     
     // Commencer la transaction
@@ -79,7 +95,7 @@ try {
             'montant_paye' => 0,
             'montant_rendu' => 0,
             'montant_total' => $montant_total,
-            'mode_paiement' => 'especes', // Default - TODO: Ajouter interface paiement
+            'mode_paiement' => $mode_paiement,
             'statut' => 'validee',
             'notes' => '',
             'date_vente' => date('Y-m-d H:i:s')

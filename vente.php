@@ -281,6 +281,37 @@ include 'header.php';
     </div>
 </div>
 
+<!-- Modal Mode de Paiement -->
+<div class="modal fade" id="paymentModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Mode de Paiement</h5>
+            </div>
+            <div class="modal-body">
+                <p class="mb-4">Sélectionnez le mode de paiement pour cette vente :</p>
+                <div class="d-grid gap-3">
+                    <button type="button" class="btn btn-lg btn-outline-success payment-option" data-mode="especes">
+                        💵 Espèces
+                    </button>
+                    <button type="button" class="btn btn-lg btn-outline-primary payment-option" data-mode="carte">
+                        💳 Carte Bancaire
+                    </button>
+                    <button type="button" class="btn btn-lg btn-outline-info payment-option" data-mode="mobile_money">
+                        📱 Mobile Money
+                    </button>
+                    <button type="button" class="btn btn-lg btn-outline-warning payment-option" data-mode="cheque">
+                        📋 Chèque
+                    </button>
+                    <button type="button" class="btn btn-lg btn-outline-secondary payment-option" data-mode="credit">
+                        🔄 Crédit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 console.log('🚀 Script vente.php chargement...');
 
@@ -504,8 +535,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateTotals(subtotal) {
         // Le prix saisi est TTC (inclut TVA 16%)
-        // Extraire TVA : TVA = TTC / 1.16, HT = TVA / 0.16
-        const total = subtotal; // TTC
+        // Total TTC = somme directe (PAS de recalcul)
+        // TVA = extraite de chaque article pour les détails
+        const total = subtotal; // TTC = somme directe
         const montantHT = subtotal / 1.16;
         const tva = subtotal - montantHT;
         
@@ -604,15 +636,37 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        console.log('🚀 Début exécution de la vente...');
+        // Afficher le modal de mode de paiement
+        console.log('💳 Affichage modal mode de paiement...');
+        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        
+        // Écouter la sélection du mode de paiement
+        document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.onclick = function() {
+                const mode = this.dataset.mode;
+                console.log('💳 Mode sélectionné:', mode);
+                paymentModal.hide();
+                
+                // Procéder à la vente avec le mode de paiement
+                processSaleWithPayment(mode);
+            };
+        });
+        
+        paymentModal.show();
+    }
+    
+    function processSaleWithPayment(modePaiement) {
+        console.log('🚀 Début exécution de la vente avec mode:', modePaiement);
         
         const formData = new FormData();
         formData.append('id_client', document.getElementById('clientSelect').value || '');
         formData.append('cart', JSON.stringify(cart));
+        formData.append('mode_paiement', modePaiement);
         
         console.log('📦 Données à envoyer:', {
             id_client: document.getElementById('clientSelect').value,
             cart: cart,
+            mode_paiement: modePaiement,
             url: 'ajax/process_vente.php'
         });
         
