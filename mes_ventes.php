@@ -319,29 +319,27 @@ include 'header.php';
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
+<document.addEventListener('DOMContentLoaded', function() {
     // Annulation de vente
     document.querySelectorAll('.btn-cancel-vente').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const numero = this.dataset.numero;
             
-            if (typeof showConfirmModal === 'function') {
-                showConfirmModal({
-                    title: 'Annuler la vente',
-                    message: `Êtes-vous sûr de vouloir annuler la vente ${numero} ? Le stock sera restauré.`,
-                    onConfirm: () => cancelVente(id)
-                });
-            } else {
-                if (confirm(`Annuler la vente ${numero} ? Le stock sera restauré.`)) {
-                    cancelVente(id);
-                }
+            console.log('🎯 Bouton annuler cliqué:', {id, numero});
+            
+            // Utiliser confirm() natif pour debug
+            const confirmed = confirm(`Annuler la vente ${numero} ? Le stock sera restauré.`);
+            console.log('👤 Utilisateur a confirmé:', confirmed);
+            
+            if (confirmed) {
+                cancelVente(id);
             }
         });
     });
     
     function cancelVente(id) {
+        alert('🚀 Début annulation vente ID: ' + id);
         console.log('🎯 cancelVente appelée avec id:', id);
         
         fetch('ajax/cancel_vente.php', {
@@ -351,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(r => {
             console.log('📡 Réponse HTTP reçue:', r.status, r.statusText);
+            alert('📡 HTTP ' + r.status + ': ' + r.statusText);
             if (!r.ok) {
                 throw new Error(`HTTP ${r.status}: ${r.statusText}`);
             }
@@ -358,21 +357,22 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(text => {
             console.log('📄 Texte brut reçu:', text);
-            alert('DEBUG - Réponse serveur:\n' + text);
+            alert('📄 Réponse serveur:\n' + text);
             
             try {
                 const data = JSON.parse(text);
                 console.log('✅ JSON parsé:', data);
+                alert('✅ Parsed JSON:\n' + JSON.stringify(data, null, 2));
                 
                 if (data.success) {
-                    alert('✅ SUCCÈS: ' + data.message);
+                    alert('✅ SUCCÈS:\n' + data.message);
                     setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('❌ ERREUR: ' + (data.message || 'Erreur inconnue'));
+                    alert('❌ ERREUR:\n' + (data.message || 'Erreur inconnue'));
                 }
             } catch (e) {
                 console.error('❌ Erreur parsing JSON:', e);
-                alert('❌ Erreur parsing:\n' + e.message + '\n\nRéponse:\n' + text);
+                alert('❌ Erreur parsing JSON:\n' + e.message + '\n\nRéponse:\n' + text);
             }
         })
         .catch(e => {
@@ -381,6 +381,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>
 
 <?php include 'footer.php'; ?>
