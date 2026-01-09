@@ -342,40 +342,42 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function cancelVente(id) {
+        console.log('🎯 cancelVente appelée avec id:', id);
+        
         fetch('ajax/cancel_vente.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: new URLSearchParams({id_vente: id})
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof showAlertModal === 'function') {
-                    showAlertModal({
-                        title: 'Succès',
-                        message: data.message,
-                        type: 'success',
-                        onClose: () => location.reload()
-                    });
+        .then(r => {
+            console.log('📡 Réponse HTTP reçue:', r.status, r.statusText);
+            if (!r.ok) {
+                throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            }
+            return r.text();
+        })
+        .then(text => {
+            console.log('📄 Texte brut reçu:', text);
+            alert('DEBUG - Réponse serveur:\n' + text);
+            
+            try {
+                const data = JSON.parse(text);
+                console.log('✅ JSON parsé:', data);
+                
+                if (data.success) {
+                    alert('✅ SUCCÈS: ' + data.message);
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message);
-                    location.reload();
+                    alert('❌ ERREUR: ' + (data.message || 'Erreur inconnue'));
                 }
-            } else {
-                if (typeof showAlertModal === 'function') {
-                    showAlertModal({
-                        title: 'Erreur',
-                        message: data.message,
-                        type: 'error'
-                    });
-                } else {
-                    alert('Erreur: ' + data.message);
-                }
+            } catch (e) {
+                console.error('❌ Erreur parsing JSON:', e);
+                alert('❌ Erreur parsing:\n' + e.message + '\n\nRéponse:\n' + text);
             }
         })
         .catch(e => {
-            console.error(e);
-            alert('Erreur de connexion');
+            console.error('❌ Erreur fetch:', e);
+            alert('❌ Erreur de connexion:\n' + e.message);
         });
     }
 });
