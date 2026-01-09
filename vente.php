@@ -300,56 +300,75 @@ let cart = [];
 let currentModalProduct = null;
 const TVA_RATE = 0.16; // 16%
 
-// ===== MODAL AJOUTER AU PANIER =====
-const addToCartModal = new bootstrap.Modal(document.getElementById('addToCartModal'));
-const modalPriceInput = document.getElementById('modalPrice');
-const modalQtyInput = document.getElementById('modalQuantity');
-const modalSubtotalInput = document.getElementById('modalSubtotal');
-const btnDecreaseQty = document.getElementById('btnDecreaseQty');
-const btnIncreaseQty = document.getElementById('btnIncreaseQty');
+// ===== ATTENDRE LE DOM AVANT DE CHARGER =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ vente.php script chargé');
+    
+    // ===== MODAL AJOUTER AU PANIER =====
+    const addToCartModal = new bootstrap.Modal(document.getElementById('addToCartModal'));
+    const modalPriceInput = document.getElementById('modalPrice');
+    const modalQtyInput = document.getElementById('modalQuantity');
+    const modalSubtotalInput = document.getElementById('modalSubtotal');
+    const btnDecreaseQty = document.getElementById('btnDecreaseQty');
+    const btnIncreaseQty = document.getElementById('btnIncreaseQty');
+    
+    window.addToCartModal = addToCartModal; // Accessible globalement
+    window.modalPriceInput = modalPriceInput;
+    window.modalQtyInput = modalQtyInput;
+    window.modalSubtotalInput = modalSubtotalInput;
+    window.btnDecreaseQty = btnDecreaseQty;
+    window.btnIncreaseQty = btnIncreaseQty;
 
-btnDecreaseQty.addEventListener('click', () => {
-    const val = Math.max(1, parseInt(modalQtyInput.value) - 1);
-    modalQtyInput.value = val;
-    updateModalSubtotal();
+    btnDecreaseQty.addEventListener('click', () => {
+        const val = Math.max(1, parseInt(modalQtyInput.value) - 1);
+        modalQtyInput.value = val;
+        window.updateModalSubtotal();
+    });
+
+    btnIncreaseQty.addEventListener('click', () => {
+        const val = Math.min(currentModalProduct.stockMax, parseInt(modalQtyInput.value) + 1);
+        modalQtyInput.value = val;
+        window.updateModalSubtotal();
+    });
+
+    modalPriceInput.addEventListener('input', function() { window.updateModalSubtotal(); });
+    modalQtyInput.addEventListener('input', function() { window.updateModalSubtotal(); });
 });
-
-btnIncreaseQty.addEventListener('click', () => {
-    const val = Math.min(currentModalProduct.stockMax, parseInt(modalQtyInput.value) + 1);
-    modalQtyInput.value = val;
-    updateModalSubtotal();
-});
-
-modalPriceInput.addEventListener('input', updateModalSubtotal);
-modalQtyInput.addEventListener('input', updateModalSubtotal);
 
 function updateModalSubtotal() {
-    const price = parseFloat(modalPriceInput.value) || 0;
-    const qty = parseInt(modalQtyInput.value) || 0;
+    const price = parseFloat(window.modalPriceInput.value) || 0;
+    const qty = parseInt(window.modalQtyInput.value) || 0;
     const subtotal = price * qty;
-    modalSubtotalInput.value = subtotal.toLocaleString('fr-FR', {minimumFractionDigits: 2});
+    window.modalSubtotalInput.value = subtotal.toLocaleString('fr-FR', {minimumFractionDigits: 2});
+}
+
+function addToCart(id, nom, prix, stockMax) {
+    console.log('addToCart appelée:', {id, nom, prix, stockMax});
+    currentModalProduct = { id, nom, prix, stockMax };
+    showAddToCartModal(id, nom, prix, stockMax);
 }
 
 function showAddToCartModal(id, nom, prix, stockMax) {
+    console.log('showAddToCartModal appelée');
     currentModalProduct = { id, nom, prix, stockMax };
     
     document.getElementById('modalProductName').textContent = nom;
     document.getElementById('modalStockInfo').textContent = `📦 Stock disponible: ${stockMax}`;
     
-    modalPriceInput.value = prix;
-    modalQtyInput.value = 1;
-    modalQtyInput.max = stockMax;
-    btnIncreaseQty.disabled = stockMax <= 1;
+    window.modalPriceInput.value = prix;
+    window.modalQtyInput.value = 1;
+    window.modalQtyInput.max = stockMax;
+    window.btnIncreaseQty.disabled = stockMax <= 1;
     
     updateModalSubtotal();
-    addToCartModal.show();
+    window.addToCartModal.show();
 }
 
 function confirmAddToCart() {
     if (!currentModalProduct) return;
     
-    const price = parseFloat(modalPriceInput.value) || currentModalProduct.prix;
-    const qty = parseInt(modalQtyInput.value) || 1;
+    const price = parseFloat(window.modalPriceInput.value) || currentModalProduct.prix;
+    const qty = parseInt(window.modalQtyInput.value) || 1;
     
     if (qty < 1) {
         showAlertModal({
@@ -387,7 +406,7 @@ function confirmAddToCart() {
     }
     
     updateCart();
-    addToCartModal.hide();
+    window.addToCartModal.hide();
     
     showAlertModal({
         title: 'Succès',
