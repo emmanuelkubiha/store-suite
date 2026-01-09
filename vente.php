@@ -363,6 +363,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ Tous les événements attachés');
     
+    // Tester si showConfirmModal existe
+    console.log('🔍 Test showConfirmModal:', typeof showConfirmModal);
+    console.log('🔍 Test showAlertModal:', typeof showAlertModal);
+    
     // Fonction pour ouvrir le modal
     function openAddToCartModal(id, nom, prix, stockMax) {
         console.log('📋 Ouverture modal:', {id, nom, prix, stockMax});
@@ -573,101 +577,84 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function processSale() {
-        if (cart.length === 0) return;
+        console.log('🎯 processSale appelée');
+        
+        if (cart.length === 0) {
+            console.log('⚠ Panier vide');
+            return;
+        }
         
         const total = cart.reduce((sum, item) => sum + (item.prix * item.quantite), 0);
         const tva = total * TVA_RATE;
         const totalTTC = total + tva;
         
+        console.log('💰 Montants calculés:', {total, tva, totalTTC});
+        
         const confirmMessage = `Confirmer la vente pour ${totalTTC.toLocaleString('fr-FR', {minimumFractionDigits: 2})} <?php echo $devise; ?> ?`;
         
-        const executeSale = () => {
-            console.log('🚀 Exécution de la vente...');
-            
-            const formData = new FormData();
-            formData.append('id_client', document.getElementById('clientSelect').value || '');
-            formData.append('cart', JSON.stringify(cart));
-            
-            console.log('📦 Données envoyées:', {
-                id_client: document.getElementById('clientSelect').value,
-                cart: cart
-            });
-            
-            fetch('ajax/process_vente.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => {
-                console.log('📡 Réponse reçue:', r.status);
-                return r.json();
-            })
-            .then(data => {
-                console.log('✅ Données:', data);
+        // UTILISER CONFIRM NATIF POUR TEST
+        const userConfirmed = confirm(confirmMessage);
+        console.log('👤 Utilisateur a confirmé:', userConfirmed);
+        
+        if (!userConfirmed) {
+            console.log('❌ Vente annulée par utilisateur');
+            return;
+        }
+        
+        console.log('🚀 Début exécution de la vente...');
+        
+        const formData = new FormData();
+        formData.append('id_client', document.getElementById('clientSelect').value || '');
+        formData.append('cart', JSON.stringify(cart));
+        
+        console.log('📦 Données à envoyer:', {
+            id_client: document.getElementById('clientSelect').value,
+            cart: cart,
+            url: 'ajax/process_vente.php'
+        });
+        
+        fetch('ajax/process_vente.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => {
+            console.log('📡 Réponse HTTP reçue:', r.status, r.statusText);
+            if (!r.ok) {
+                throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            }
+            return r.text();
+        })
+        .then(text => {
+            console.log('📄 Texte brut reçu:', text);
+            try {
+                const data = JSON.parse(text);
+                console.log('✅ JSON parsé:', data);
                 
                 if (data.success) {
+                    console.log('✅ Vente réussie!');
                     cart = [];
                     updateCart();
                     
-                    if (typeof showAlertModal === 'function') {
-                        showAlertModal({
-                            title: 'Vente validée',
-                            message: data.message || 'Vente enregistrée avec succès',
-                            type: 'success',
-                            onClose: () => {
-                                if (data.id_vente) {
-                                    window.open('facture_impression_v2.php?id=' + data.id_vente, '_blank');
-                                }
-                            }
-                        });
-                    } else {
-                        alert(data.message);
-                        if (data.id_vente) {
-                            window.open('facture_impression_v2.php?id=' + data.id_vente, '_blank');
-                        }
+                    alert(data.message || 'Vente enregistrée avec succès');
+                    
+                    if (data.id_vente) {
+                        console.log('📄 Ouverture facture ID:', data.id_vente);
+                        window.open('facture_impression_v2.php?id=' + data.id_vente, '_blank');
                     }
                 } else {
-                    if (typeof showAlertModal === 'function') {
-                        showAlertModal({
-                            title: 'Erreur',
-                            message: data.message || 'Une erreur est survenue',
-                            type: 'error'
-                        });
-                    } else {
-                        alert('Erreur: ' + data.message);
-                    }
+                    console.error('❌ Erreur métier:', data.message);
+                    alert('Erreur: ' + (data.message || 'Une erreur est survenue'));
                 }
-            })
-            .catch(e => {
-                console.error('❌ Erreur catch:', e);
-                if (typeof showAlertModal === 'function') {
-                    showAlertModal({
-                        title: 'Erreur de connexion',
-                        message: 'Impossible de se connecter au serveur. Vérifiez votre connexion.',
-                        type: 'error'
-                    });
-                } else {
-                    alert('Erreur de connexion');
-                }
-            });
-        };
-        
-        // Confirmer avant de valider
-        if (typeof showConfirmModal === 'function') {
-            console.log('🔔 Affichage modal confirmation');
-            showConfirmModal({
-                title: 'Confirmer la vente',
-                message: confirmMessage,
-                onConfirm: () => {
-                    console.log('✅ Confirmation reçue, exécution vente');
-                    executeSale();
-                }
-            });
-        } else {
-            console.log('⚠ Pas de showConfirmModal, utilisation confirm()');
-            if (confirm(confirmMessage)) {
-                executeSale();
+            } catch (e) {
+                console.error('❌ Erreur parsing JSON:', e);
+                console.log('Texte reçu:', text);
+                alert('Erreur: Réponse serveur invalide');
             }
-        }
+        })
+        .catch(e => {
+            console.error('❌ Erreur réseau ou fetch:', e);
+            alert('Erreur de connexion: ' + e.message);
+        });
     }
     
     function generateProforma() {
