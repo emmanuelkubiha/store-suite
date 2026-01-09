@@ -431,18 +431,23 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
+                console.log('✅ Suppression réussie');
                 if (typeof showAlertModal === 'function') {
                     showAlertModal({
                         title: 'Succès',
                         message: data.message,
-                        type: 'success',
-                        onClose: () => location.reload()
+                        type: 'success'
                     });
                 } else {
                     alert(data.message);
-                    location.reload();
                 }
+                // Recharger après 1 seconde
+                setTimeout(() => {
+                    console.log('🔄 Rechargement page...');
+                    location.reload();
+                }, 1000);
             } else {
+                console.error('❌ Erreur suppression:', data.message);
                 if (typeof showAlertModal === 'function') {
                     showAlertModal({
                         title: 'Erreur',
@@ -455,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(e => {
-            console.error(e);
+            console.error('❌ Erreur fetch:', e);
             if (typeof showAlertModal === 'function') {
                 showAlertModal({
                     title: 'Erreur',
@@ -463,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     type: 'error'
                 });
             } else {
-                alert('Erreur de connexion');
+                alert('Erreur de connexion: ' + e.message);
             }
         });
     }
