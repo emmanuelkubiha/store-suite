@@ -1,77 +1,11 @@
-# Configuration sensible - NE JAMAIS COMMIT EN PRODUCTION
-# Ces fichiers contiennent des credentials et infos sensibles
-config/config.php
-config/database.php
+# ⚠️ CONFIGURATION POUR BACKUP PERSONNEL
+# Tous les fichiers sont inclus pour sauvegarde complète
+# À RÉACTIVER avant mise en production publique !
 
-# Uploads et fichiers utilisateurs
-uploads/logos/*
-uploads/produits/*
-uploads/utilisateurs/*
-!uploads/logos/.gitkeep
-!uploads/produits/.gitkeep
-!uploads/utilisateurs/.gitkeep
-
-# Fichiers de session PHP
-*.session
-
-# Logs
-*.log
-logs/
-
-# Fichiers temporaires
-*.tmp
-*.temp
-*.cache
-tmp/
-temp/
-
-# Fichiers de sauvegarde
-*.backup
-*.bak
-*.old
-*_backup*
-*_old*
-
-# IDE et éditeurs
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-
-# Composer
-vendor/
-composer.lock
-
-# Node modules (si applicable)
-node_modules/
-package-lock.json
-
-# Bases de données - DANGEREUX de commit des dumps avec données réelles
-# Risque de fuite de données clients/produits/utilisateurs
-*.sql
-*.sql.gz
-*.sql.zip
-dump.sql
-backup_*.sql
-storesuite.sql
-BD_SMART_GESTION.sql
-# Exception : migrations dans database/ sont OK (structure seulement)
-!database/*.sql
-
-# Fichiers système Windows
-desktop.ini
-$RECYCLE.BIN/
-
-# Fichiers de test
-test_*.php
-debug_*.php
-diagnostic.php
-
-# Documentation temporaire
-DRAFT_*.md
-TEMP_*.md
+# Décommentez ces lignes pour la production:
+# config/config.php
+# config/database.php
+# *.sql
+# uploads/logos/*
+# uploads/produits/*
+# uploads/utilisateurs/*
