@@ -66,8 +66,7 @@ $stats = db_fetch_one("
     SELECT 
         COUNT(DISTINCT v.id_vente) as total_ventes,
         COALESCE(SUM(CASE WHEN DATE(v.date_vente) = CURDATE() THEN v.montant_total ELSE 0 END), 0) as ca_today,
-        COALESCE(SUM(v.montant_total), 0) as ca_total,
-        COALESCE(SUM(v.montant_remise), 0) as total_remises
+        COALESCE(SUM(v.montant_total), 0) as ca_total
     FROM ventes v
     WHERE v.id_vendeur = ?
 ", [$user_id]);
@@ -124,9 +123,9 @@ include 'header.php';
                                 <line x1="1" y1="10" x2="23" y2="10"></line>
                             </svg>
                         </div>
-                        <div>
+                        <div class="flex-grow-1">
                             <div class="text-muted small">Total Ventes</div>
-                            <div class="h3 mb-0"><?php echo $stats['total_ventes']; ?></div>
+                            <div class="h4 mb-0"><?php echo $stats['total_ventes']; ?></div>
                         </div>
                     </div>
                 </div>
@@ -142,9 +141,9 @@ include 'header.php';
                                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                             </svg>
                         </div>
-                        <div>
+                        <div class="flex-grow-1">
                             <div class="text-muted small">CA Aujourd'hui</div>
-                            <div class="h3 mb-0"><?php echo format_montant($stats['ca_today'], $devise); ?></div>
+                            <div class="h4 mb-0"><?php echo format_montant($stats['ca_today'], $devise); ?></div>
                         </div>
                     </div>
                 </div>
@@ -160,28 +159,9 @@ include 'header.php';
                                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                             </svg>
                         </div>
-                        <div>
+                        <div class="flex-grow-1">
                             <div class="text-muted small">CA Total</div>
-                            <div class="h3 mb-0"><?php echo format_montant($stats['ca_total'], $devise); ?></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="8.5" cy="7" r="4"></circle>
-                                <polyline points="17 11 19 13 23 9"></polyline>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="text-muted small">Remises</div>
-                            <div class="h3 mb-0"><?php echo format_montant($stats['total_remises'], $devise); ?></div>
+                            <div class="h4 mb-0"><?php echo format_montant($stats['ca_total'], $devise); ?></div>
                         </div>
                     </div>
                 </div>
@@ -285,7 +265,7 @@ include 'header.php';
                             </td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="facture_impression_v2.php?id=<?php echo $vente['id_vente']; ?>" 
+                                    <a href="facture_impression.php?id=<?php echo $vente['id_vente']; ?>" 
                                        target="_blank"
                                        class="btn btn-outline-primary"
                                        data-bs-toggle="tooltip" title="Imprimer facture">
@@ -304,6 +284,17 @@ include 'header.php';
                                             <circle cx="12" cy="12" r="10"></circle>
                                             <line x1="15" y1="9" x2="9" y2="15"></line>
                                             <line x1="9" y1="9" x2="15" y2="15"></line>
+                                        </svg>
+                                    </button>
+                                    <?php endif; ?>
+                                    <?php if ($vente['statut'] == 'annulee'): ?>
+                                    <button type="button" class="btn btn-outline-success btn-restore-vente" 
+                                            data-id="<?php echo $vente['id_vente']; ?>"
+                                            data-numero="<?php echo e($vente['numero_facture']); ?>"
+                                            data-bs-toggle="tooltip" title="Restaurer la vente">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="23 4 23 10 17 10"></polyline>
+                                            <path d="M20.49 15a9 9 0 1 1 .12-4.36"></path>
                                         </svg>
                                     </button>
                                     <?php endif; ?>
@@ -342,12 +333,44 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('❌ Bouton annuler cliqué:', {id, numero});
             
-            // Utiliser confirm() natif pour fiabilité
-            const confirmed = confirm(`Annuler la vente ${numero} ?\n\nLe stock sera restauré.`);
-            console.log('👤 Utilisateur a confirmé annulation:', confirmed);
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal({
+                    title: 'Confirmer l\'annulation',
+                    message: `Annuler la vente ${numero} ? Le stock sera restauré.`,
+                    type: 'danger',
+                    confirmText: 'Annuler la vente',
+                    cancelText: 'Revenir'
+                }).then(confirmed => {
+                    if (confirmed) cancelVente(id);
+                });
+            } else {
+                const confirmed = confirm(`Annuler la vente ${numero} ?\n\nLe stock sera restauré.`);
+                if (confirmed) cancelVente(id);
+            }
+        });
+    });
+    
+    // Restauration de vente (pour les ventes annulées)
+    document.querySelectorAll('.btn-restore-vente').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const numero = this.dataset.numero;
             
-            if (confirmed) {
-                cancelVente(id);
+            console.log('♻️ Bouton restaurer cliqué:', {id, numero});
+            
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal({
+                    title: 'Restaurer la vente',
+                    message: `Restaurer la vente ${numero} en statut validé ? Le stock sera réduit.`,
+                    type: 'info',
+                    confirmText: 'Restaurer',
+                    cancelText: 'Annuler'
+                }).then(confirmed => {
+                    if (confirmed) restoreVente(id);
+                });
+            } else {
+                const confirmed = confirm(`Restaurer la vente ${numero} ? Le stock sera réduit.`);
+                if (confirmed) restoreVente(id);
             }
         });
     });
@@ -357,6 +380,26 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const numero = this.dataset.numero;
+            
+            console.log('🗑️ Bouton supprimer cliqué:', {id, numero});
+            
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal({
+                    title: 'Supprimer définitivement',
+                    message: `Supprimer la vente ${numero} ? Cette action est irréversible.`,
+                    type: 'danger',
+                    confirmText: 'Supprimer définitivement',
+                    cancelText: 'Revenir'
+                }).then(confirmed => {
+                    if (confirmed) deleteVente(id);
+                });
+            } else {
+                const confirmed = confirm(`Supprimer la vente ${numero} ? Cette action est irréversible.`);
+                if (confirmed) deleteVente(id);
+            }
+        });
+    });
+});
             
             console.log('🗑️ Bouton supprimer cliqué:', {id, numero});
             
@@ -398,6 +441,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 1000);
             } else {
                 console.error('❌ Erreur annulation:', data.message);
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal({
+                        title: 'Erreur',
+                        message: data.message,
+                        type: 'error'
+                    });
+                } else {
+                    alert('Erreur: ' + data.message);
+                }
+            }
+        })
+        .catch(e => {
+            console.error('❌ Erreur fetch:', e);
+            if (typeof showAlertModal === 'function') {
+                showAlertModal({
+                    title: 'Erreur',
+                    message: 'Erreur de connexion: ' + e.message,
+                    type: 'error'
+                });
+            } else {
+                alert('Erreur de connexion: ' + e.message);
+            }
+        });
+    }
+    
+    function restoreVente(id) {
+        console.log('♻️ restoreVente appelée avec id:', id);
+        
+        fetch('ajax/restore_vente.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({id_vente: id})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Restauration réussie');
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal({
+                        title: 'Succès',
+                        message: data.message,
+                        type: 'success'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    alert(data.message);
+                    location.reload();
+                }
+            } else {
+                console.error('❌ Erreur restauration:', data.message);
                 if (typeof showAlertModal === 'function') {
                     showAlertModal({
                         title: 'Erreur',

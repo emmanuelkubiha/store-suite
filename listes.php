@@ -105,6 +105,19 @@ require_once('header.php');
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
 }
+.stat-card h4 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1rem;
+    max-width: 100%;
+}
+.stat-card .text-muted {
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 </style>
 
 <div class="container-xl">
@@ -1018,17 +1031,26 @@ require_once('header.php');
                 $ca_total = 0;
                 $ca_ht_total = 0;
                 $tva_total = 0;
-                $remise_total = 0;
                 $ca_jour = 0;
                 $aujourd_hui = date('Y-m-d');
                 $stats_vendeurs = [];
                 $stats_modes_paiement = [];
+                $ventes_validees = 0;
+                $ventes_annulees = 0;
+                $nb_articles_total = 0;
                 
                 foreach($ventes as $vente) {
                     $ca_total += $vente['montant_total'];
                     $ca_ht_total += $vente['montant_ht'];
                     $tva_total += $vente['montant_tva'];
-                    $remise_total += $vente['montant_remise'];
+                    $nb_articles_total += $vente['nb_articles'];
+                    
+                    // Compter statuts
+                    if ($vente['statut'] == 'validee') {
+                        $ventes_validees++;
+                    } elseif ($vente['statut'] == 'annulee') {
+                        $ventes_annulees++;
+                    }
                     
                     if (date('Y-m-d', strtotime($vente['date_vente'])) == $aujourd_hui) {
                         $ca_jour += $vente['montant_total'];
@@ -1048,6 +1070,10 @@ require_once('header.php');
                     $stats_modes_paiement[$mode]['count']++;
                     $stats_modes_paiement[$mode]['montant'] += $vente['montant_total'];
                 }
+                
+                // Calculs supplémentaires
+                $panier_moyen = $ventes_validees > 0 ? $ca_total / $ventes_validees : 0;
+                $articles_moyen = $total_ventes > 0 ? $nb_articles_total / $total_ventes : 0;
                 
                 // Listes pour filtres
                 $clients = db_fetch_all("SELECT id_client, nom_client FROM clients ORDER BY nom_client");
@@ -1147,9 +1173,9 @@ require_once('header.php');
                                     <line x1="1" y1="10" x2="23" y2="10"></line>
                                 </svg>
                             </div>
-                            <div>
+                            <div class="flex-grow-1">
                                 <div class="text-muted" data-bs-toggle="tooltip" title="Nombre total de ventes correspondant aux filtres">Ventes</div>
-                                <h3 class="mb-0"><?php echo $total_ventes; ?></h3>
+                                <h4 class="mb-0"><?php echo $total_ventes; ?></h4>
                             </div>
                         </div>
                     </div>
@@ -1163,9 +1189,9 @@ require_once('header.php');
                                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                                 </svg>
                             </div>
-                            <div>
+                            <div class="flex-grow-1">
                                 <div class="text-muted" data-bs-toggle="tooltip" title="Chiffre d'affaires TTC du jour">CA Aujourd'hui</div>
-                                <h3 class="mb-0"><?php echo format_montant($ca_jour, $devise); ?></h3>
+                                <h4 class="mb-0" style="font-size: 0.95rem;"><?php echo format_montant($ca_jour, $devise); ?></h4>
                             </div>
                         </div>
                     </div>
@@ -1179,9 +1205,9 @@ require_once('header.php');
                                     <polyline points="17 6 23 6 23 12"></polyline>
                                 </svg>
                             </div>
-                            <div>
+                            <div class="flex-grow-1">
                                 <div class="text-muted" data-bs-toggle="tooltip" title="Chiffre d'affaires TTC total (avec filtres)">CA Total TTC</div>
-                                <h3 class="mb-0"><?php echo format_montant($ca_total, $devise); ?></h3>
+                                <h4 class="mb-0" style="font-size: 0.95rem;"><?php echo format_montant($ca_total, $devise); ?></h4>
                             </div>
                         </div>
                     </div>
@@ -1191,13 +1217,85 @@ require_once('header.php');
                         <div class="card-body d-flex align-items-center">
                             <div class="me-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffc107" stroke-width="2">
-                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
                             </div>
-                            <div>
-                                <div class="text-muted" data-bs-toggle="tooltip" title="Total des remises accordées">Remises</div>
-                                <h3 class="mb-0"><?php echo format_montant($remise_total, $devise); ?></h3>
+                            <div class="flex-grow-1">
+                                <div class="text-muted" data-bs-toggle="tooltip" title="Montant moyen par vente validée">Panier Moyen</div>
+                                <h4 class="mb-0" style="font-size: 0.95rem;"><?php echo format_montant($panier_moyen, $devise); ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiques supplémentaires -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="me-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6f42c1" stroke-width="2">
+                                    <rect x="1" y="3" width="15" height="13"></rect>
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                </svg>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="text-muted" data-bs-toggle="tooltip" title="Montant total hors taxes">CA HT</div>
+                                <h4 class="mb-0" style="font-size: 0.9rem;"><?php echo format_montant($ca_ht_total, $devise); ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="me-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="text-muted" data-bs-toggle="tooltip" title="TVA collectée (16%)">TVA Collectée</div>
+                                <h4 class="mb-0" style="font-size: 0.9rem;"><?php echo format_montant($tva_total, $devise); ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="me-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#20c997" stroke-width="2">
+                                    <polyline points="9 11 12 14 22 4"></polyline>
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="text-muted" data-bs-toggle="tooltip" title="Nombre de ventes validées">Validées</div>
+                                <h4 class="mb-0"><?php echo $ventes_validees; ?> <small class="text-muted">/ <?php echo $total_ventes; ?></small></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="me-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="text-muted" data-bs-toggle="tooltip" title="Nombre de ventes annulées">Annulées</div>
+                                <h4 class="mb-0"><?php echo $ventes_annulees; ?> <small class="text-muted"><?php echo $total_ventes > 0 ? '(' . round(($ventes_annulees / $total_ventes) * 100, 1) . '%)' : ''; ?></small></h4>
                             </div>
                         </div>
                     </div>
@@ -1278,15 +1376,11 @@ require_once('header.php');
                                     <p class="text-muted small">Montant HT</p>
                                     <h5><?php echo format_montant($ca_ht_total, $devise); ?></h5>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <p class="text-muted small">TVA (16%)</p>
                                     <h5><?php echo format_montant($tva_total, $devise); ?></h5>
                                 </div>
-                                <div class="col-md-3">
-                                    <p class="text-muted small">Remises</p>
-                                    <h5><?php echo format_montant($remise_total, $devise); ?></h5>
-                                </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <p class="text-muted small">Montant Moyen</p>
                                     <h5><?php echo format_montant($total_ventes > 0 ? $ca_total / $total_ventes : 0, $devise); ?></h5>
                                 </div>
@@ -1320,45 +1414,33 @@ require_once('header.php');
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover card-table">
+                        <table class="table table-hover card-table" style="min-width: 100%; white-space: nowrap;">
                             <thead>
                                 <tr>
-                                    <th data-bs-toggle="tooltip" title="Numéro de facture unique">N° Facture</th>
-                                    <th data-bs-toggle="tooltip" title="Date et heure de la vente">Date</th>
-                                    <th data-bs-toggle="tooltip" title="Nom du client">Client</th>
-                                    <th data-bs-toggle="tooltip" title="Nombre d'articles vendus">Articles</th>
-                                    <th data-bs-toggle="tooltip" title="Montant HT">HT</th>
-                                    <th data-bs-toggle="tooltip" title="TVA (16%)">TVA</th>
-                                    <th data-bs-toggle="tooltip" title="Remise accordée">Remise</th>
-                                    <th data-bs-toggle="tooltip" title="Montant total TTC">Montant TTC</th>
-                                    <th data-bs-toggle="tooltip" title="Mode de paiement utilisé">Paiement</th>
-                                    <th data-bs-toggle="tooltip" title="Statut de la vente">Statut</th>
-                                    <th data-bs-toggle="tooltip" title="Vendeur ayant effectué la vente">Vendeur</th>
-                                    <th class="text-end">Actions</th>
+                                    <th style="min-width: 120px;" data-bs-toggle="tooltip" title="Numéro de facture unique">N° Facture</th>
+                                    <th style="min-width: 100px;" data-bs-toggle="tooltip" title="Date et heure de la vente">Date</th>
+                                    <th style="min-width: 120px;" data-bs-toggle="tooltip" title="Nom du client">Client</th>
+                                    <th style="min-width: 90px;" class="text-end" data-bs-toggle="tooltip" title="Montant total TTC">Montant TTC</th>
+                                    <th style="min-width: 100px;" data-bs-toggle="tooltip" title="Mode de paiement utilisé">Paiement</th>
+                                    <th style="min-width: 80px;" data-bs-toggle="tooltip" title="Statut de la vente">Statut</th>
+                                    <th style="min-width: 100px;" data-bs-toggle="tooltip" title="Vendeur ayant effectué la vente">Vendeur</th>
+                                    <th style="min-width: 150px;" class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($ventes)): ?>
                                 <tr>
-                                    <td colspan="12" class="text-center text-muted">Aucune vente correspondant aux filtres</td>
+                                    <td colspan="8" class="text-center text-muted">Aucune vente correspondant aux filtres</td>
                                 </tr>
                                 <?php else: ?>
                                 <?php foreach($ventes as $vente): ?>
                                 <tr>
-                                    <td><strong><?php echo e($vente['numero_facture']); ?></strong></td>
-                                    <td><small><?php echo date('d/m/Y H:i', strtotime($vente['date_vente'])); ?></small></td>
-                                    <td><?php echo e($vente['nom_client'] ?: 'Vente comptoir'); ?></td>
-                                    <td><span class="badge bg-info"><?php echo $vente['nb_articles']; ?></span></td>
-                                    <td><?php echo format_montant($vente['montant_ht'], $devise); ?></td>
-                                    <td><?php echo format_montant($vente['montant_tva'], $devise); ?></td>
-                                    <td>
-                                        <?php if ($vente['montant_remise'] > 0): ?>
-                                        <span class="badge bg-warning text-dark"><?php echo format_montant($vente['montant_remise'], $devise); ?></span>
-                                        <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                        <?php endif; ?>
+                                    <td style="white-space: nowrap;"><strong><?php echo e($vente['numero_facture']); ?></strong></td>
+                                    <td style="white-space: nowrap;"><small><?php echo date('d/m/Y H:i', strtotime($vente['date_vente'])); ?></small></td>
+                                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" data-bs-toggle="tooltip" title="<?php echo e($vente['nom_client'] ?: 'Vente comptoir'); ?>">
+                                        <?php echo e($vente['nom_client'] ?: 'Comptoir'); ?>
                                     </td>
-                                    <td><strong><?php echo format_montant($vente['montant_total'], $devise); ?></strong></td>
+                                    <td class="text-end" style="white-space: nowrap;"><strong><?php echo format_montant($vente['montant_total'], $devise); ?></strong></td>
                                     <td>
                                         <?php
                                         $mode_badges = [
@@ -1369,16 +1451,23 @@ require_once('header.php');
                                             'credit' => 'secondary'
                                         ];
                                         $mode_labels = [
-                                            'especes' => 'Espèces',
-                                            'carte' => 'Carte',
-                                            'mobile_money' => 'Mobile Money',
-                                            'cheque' => 'Chèque',
-                                            'credit' => 'Crédit'
+                                            'especes' => '💵',
+                                            'carte' => '💳',
+                                            'mobile_money' => '📱',
+                                            'cheque' => '📄',
+                                            'credit' => '🔄'
                                         ];
                                         $badge_class = $mode_badges[$vente['mode_paiement']] ?? 'secondary';
                                         $mode_label = $mode_labels[$vente['mode_paiement']] ?? $vente['mode_paiement'];
+                                        $mode_title = [
+                                            'especes' => 'Espèces',
+                                            'carte' => 'Carte Bancaire',
+                                            'mobile_money' => 'Mobile Money',
+                                            'cheque' => 'Chèque',
+                                            'credit' => 'Crédit'
+                                        ][$vente['mode_paiement']] ?? $vente['mode_paiement'];
                                         ?>
-                                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo $mode_label; ?></span>
+                                        <span class="badge bg-<?php echo $badge_class; ?>" data-bs-toggle="tooltip" title="<?php echo $mode_title; ?>"><?php echo $mode_label; ?></span>
                                     </td>
                                     <td>
                                         <?php
@@ -1388,17 +1477,22 @@ require_once('header.php');
                                             'annulee' => 'danger'
                                         ];
                                         $statut_labels = [
-                                            'validee' => 'Validée',
-                                            'en_cours' => 'En cours',
-                                            'annulee' => 'Annulée'
+                                            'validee' => '✓',
+                                            'en_cours' => '⏳',
+                                            'annulee' => '✗'
                                         ];
                                         $badge_class = $statut_badges[$vente['statut']] ?? 'secondary';
                                         $statut_label = $statut_labels[$vente['statut']] ?? $vente['statut'];
+                                        $statut_title = [
+                                            'validee' => 'Validée',
+                                            'en_cours' => 'En cours',
+                                            'annulee' => 'Annulée'
+                                        ][$vente['statut']] ?? $vente['statut'];
                                         ?>
-                                        <span class="badge bg-<?php echo $badge_class; ?>"><?php echo $statut_label; ?></span>
+                                        <span class="badge bg-<?php echo $badge_class; ?>" data-bs-toggle="tooltip" title="<?php echo $statut_title; ?>"><?php echo $statut_label; ?></span>
                                     </td>
-                                    <td><small><?php echo e($vente['vendeur']); ?></small></td>
-                                    <td class="text-end">
+                                    <td style="max-width: 100px; overflow: hidden; text-overflow: ellipsis;"><small><?php echo e($vente['vendeur']); ?></small></td>
+                                    <td class="text-end" style="white-space: nowrap;">
                                         <div class="btn-group btn-group-sm">
                                             <button type="button" class="btn btn-outline-info btn-view-vente" 
                                                     data-id="<?php echo $vente['id_vente']; ?>"
@@ -1408,7 +1502,7 @@ require_once('header.php');
                                                     <circle cx="12" cy="12" r="3"></circle>
                                                 </svg>
                                             </button>
-                                            <a href="facture_impression_v2.php?id=<?php echo $vente['id_vente']; ?>" 
+                                            <a href="facture_impression.php?id=<?php echo $vente['id_vente']; ?>" 
                                                target="_blank"
                                                class="btn btn-outline-primary"
                                                data-bs-toggle="tooltip" title="Imprimer facture professionnelle">
@@ -1427,6 +1521,30 @@ require_once('header.php');
                                                     <circle cx="12" cy="12" r="10"></circle>
                                                     <line x1="15" y1="9" x2="9" y2="15"></line>
                                                     <line x1="9" y1="9" x2="15" y2="15"></line>
+                                                </svg>
+                                            </button>
+                                            <?php endif; ?>
+                                            <?php if ($vente['statut'] == 'annulee'): ?>
+                                            <button type="button" class="btn btn-outline-success btn-restore-vente" 
+                                                    data-id="<?php echo $vente['id_vente']; ?>"
+                                                    data-numero="<?php echo e($vente['numero_facture']); ?>"
+                                                    data-bs-toggle="tooltip" title="Restaurer la vente (Admin seulement)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                                    <path d="M20.49 15a9 9 0 1 1 .12-4.36"></path>
+                                                </svg>
+                                            </button>
+                                            <?php endif; ?>
+                                            <?php if ($vente['statut'] == 'annulee' && $is_admin): ?>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-vente" 
+                                                    data-id="<?php echo $vente['id_vente']; ?>"
+                                                    data-numero="<?php echo e($vente['numero_facture']); ?>"
+                                                    data-bs-toggle="tooltip" title="Supprimer définitivement (Admin seulement)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
                                                 </svg>
                                             </button>
                                             <?php endif; ?>
@@ -1605,56 +1723,42 @@ function deleteProduct(id, name) {
     if (refuseIfVendeur()) return;
     console.log('deleteProduct() appelé', id, name);
     
-    if (typeof showConfirmModal === 'function') {
-        showConfirmModal({
-            title: 'Confirmer la suppression',
-            message: `Êtes-vous sûr de vouloir supprimer "${name}" ?`,
-            onConfirm: () => {
-                fetch('ajax/produits.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: new URLSearchParams({
-                        action: 'delete',
-                        id: id
-                    })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal({
-                                title: 'Succès',
-                                message: data.message,
-                                type: 'success',
-                                onClose: () => location.reload()
-                            });
-                        } else {
-                            alert(data.message);
-                            location.reload();
-                        }
-                    } else {
-                        if (typeof showAlertModal === 'function') {
-                            showAlertModal({
-                                title: 'Erreur',
-                                message: data.message,
-                                type: 'error'
-                            });
-                        } else {
-                            alert(data.message);
-                        }
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Erreur réseau');
+    showConfirmModal({
+        title: 'Confirmer la suppression',
+        message: `Êtes-vous sûr de vouloir supprimer "${name}" ?`,
+        type: 'warning'
+    }).then(confirmed => {
+        if (!confirmed) return;
+        
+        fetch('ajax/produits.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({
+                action: 'delete',
+                id: id
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showAlertModal({
+                    title: 'Succès',
+                    message: data.message,
+                    type: 'success'
+                }).then(() => location.reload());
+            } else {
+                showAlertModal({
+                    title: 'Erreur',
+                    message: data.message,
+                    type: 'error'
                 });
             }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Erreur réseau');
         });
-    } else {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) {
-            // Même code fetch...
-        }
-    }
+    });
 }
 
 // Soumettre formulaire produit
@@ -1850,15 +1954,13 @@ function deleteClient(id, name) {
         });
     };
     
-    if (typeof showConfirmModal === 'function') {
-        showConfirmModal({
-            title: 'Confirmer la suppression',
-            message: `Supprimer le client "${name}" ?`,
-            onConfirm: doDelete
-        });
-    } else if (confirm(`Supprimer le client "${name}" ?`)) {
-        doDelete();
-    }
+    showConfirmModal({
+        title: 'Confirmer la suppression',
+        message: `Supprimer le client "${name}" ?`,
+        type: 'warning'
+    }).then(confirmed => {
+        if (confirmed) doDelete();
+    });
 }
 
 function saveClient() {
@@ -1877,17 +1979,13 @@ function saveClient() {
         if (data.success) {
             bootstrap.Modal.getInstance(modalClient).hide();
         }
-        if (typeof showAlertModal === 'function') {
-            showAlertModal({
-                title: data.success ? 'Succès' : 'Erreur',
-                message: data.message,
-                type: data.success ? 'success' : 'error',
-                onClose: () => { if (data.success) location.reload(); }
-            });
-        } else {
-            alert(data.message);
+        showAlertModal({
+            title: data.success ? 'Succès' : 'Erreur',
+            message: data.message,
+            type: data.success ? 'success' : 'error'
+        }).then(() => {
             if (data.success) location.reload();
-        }
+        });
     })
     .catch(err => { console.error(err); alert('Erreur réseau'); });
 }
@@ -1970,15 +2068,13 @@ function deleteCategory(id, name, nbProducts) {
         });
     };
     
-    if (typeof showConfirmModal === 'function') {
-        showConfirmModal({
-            title: 'Confirmer la suppression',
-            message: `Supprimer la catégorie "${name}" ?`,
-            onConfirm: doDelete
-        });
-    } else if (confirm(`Supprimer la catégorie "${name}" ?`)) {
-        doDelete();
-    }
+    showConfirmModal({
+        title: 'Confirmer la suppression',
+        message: `Supprimer la catégorie "${name}" ?`,
+        type: 'warning'
+    }).then(confirmed => {
+        if (confirmed) doDelete();
+    });
 }
 
 function saveCategory() {
@@ -1995,17 +2091,13 @@ function saveCategory() {
         if (data.success) {
             bootstrap.Modal.getInstance(modalCategory).hide();
         }
-        if (typeof showAlertModal === 'function') {
-            showAlertModal({
-                title: data.success ? 'Succès' : 'Erreur',
-                message: data.message,
-                type: data.success ? 'success' : 'error',
-                onClose: () => { if (data.success) location.reload(); }
-            });
-        } else {
-            alert(data.message);
+        showAlertModal({
+            title: data.success ? 'Succès' : 'Erreur',
+            message: data.message,
+            type: data.success ? 'success' : 'error'
+        }).then(() => {
             if (data.success) location.reload();
-        }
+        });
     })
     .catch(err => { console.error(err); alert('Erreur réseau'); });
 }
@@ -2035,6 +2127,48 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = this.getAttribute('data-id');
             const numero = this.getAttribute('data-numero');
             cancelVente(id, numero);
+        });
+    });
+    
+    // Boutons restaurer vente (ventes annulées)
+    document.querySelectorAll('.btn-restore-vente').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const numero = this.getAttribute('data-numero');
+            
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal({
+                    title: 'Restaurer la vente',
+                    message: `Restaurer la vente ${numero} en statut validé ? Le stock sera réduit.`,
+                    type: 'info',
+                    confirmText: 'Restaurer',
+                    cancelText: 'Annuler'
+                }).then(confirmed => {
+                    if (!confirmed) return;
+                    restoreVente(id);
+                });
+            }
+        });
+    });
+    
+    // Boutons supprimer vente (ventes annulées, admin seulement)
+    document.querySelectorAll('.btn-delete-vente').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const numero = this.getAttribute('data-numero');
+            
+            if (typeof showConfirmModal === 'function') {
+                showConfirmModal({
+                    title: 'Supprimer définitivement',
+                    message: `Supprimer la vente ${numero} ? Cette action est irréversible.`,
+                    type: 'danger',
+                    confirmText: 'Supprimer définitivement',
+                    cancelText: 'Revenir'
+                }).then(confirmed => {
+                    if (!confirmed) return;
+                    deleteVente(id);
+                });
+            }
         });
     });
 });
@@ -2095,29 +2229,47 @@ function cancelVente(id, numero) {
         showConfirmModal({
             title: 'Confirmer l\'annulation',
             message: `Êtes-vous sûr de vouloir annuler la vente ${numero} ? Cette action est irréversible et le stock sera remis à jour.`,
-            onConfirm: () => {
-                fetch('ajax/valider_vente.php', {
-                    method: 'POST',
-                    body: new URLSearchParams({
-                        action: 'cancel_vente',
-                        id_vente: id
-                    })
+            type: 'danger',
+            confirmText: 'Annuler la vente',
+            cancelText: 'Revenir'
+        }).then(confirmed => {
+            if (!confirmed) return;
+            
+            fetch('ajax/valider_vente.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    action: 'cancel_vente',
+                    id_vente: id
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (typeof showAlertModal === 'function') {
-                        showAlertModal({
-                            title: data.success ? 'Succès' : 'Erreur',
-                            message: data.message,
-                            type: data.success ? 'success' : 'error',
-                            onClose: () => { if (data.success) location.reload(); }
-                        });
-                    } else {
-                        alert(data.message);
+            })
+            .then(r => r.json())
+            .then(data => {
+                console.log('📝 Réponse annulation:', data);
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal({
+                        title: data.success ? 'Succès' : 'Erreur',
+                        message: data.message,
+                        type: data.success ? 'success' : 'error'
+                    }).then(() => {
                         if (data.success) location.reload();
-                    }
-                });
-            }
+                    });
+                } else {
+                    alert(data.message);
+                    if (data.success) location.reload();
+                }
+            })
+            .catch(err => {
+                console.error('❌ Erreur requête:', err);
+                if (typeof showAlertModal === 'function') {
+                    showAlertModal({
+                        title: 'Erreur',
+                        message: 'Erreur de connexion: ' + err.message,
+                        type: 'error'
+                    });
+                } else {
+                    alert('Erreur: ' + err.message);
+                }
+            });
         });
     } else if (confirm(`Annuler la vente ${numero} ? Le stock sera remis à jour.`)) {
         fetch('ajax/valider_vente.php', {
@@ -2133,6 +2285,110 @@ function cancelVente(id, numero) {
             if (data.success) location.reload();
         });
     }
+}
+
+function restoreVente(id) {
+    console.log('♻️ restoreVente appelée avec id:', id);
+    
+    fetch('ajax/restore_vente.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({id_vente: id})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            console.log('✅ Restauration réussie');
+            if (typeof showAlertModal === 'function') {
+                showAlertModal({
+                    title: 'Succès',
+                    message: data.message,
+                    type: 'success'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                alert(data.message);
+                location.reload();
+            }
+        } else {
+            console.error('❌ Erreur restauration:', data.message);
+            if (typeof showAlertModal === 'function') {
+                showAlertModal({
+                    title: 'Erreur',
+                    message: data.message,
+                    type: 'error'
+                });
+            } else {
+                alert('Erreur: ' + data.message);
+            }
+        }
+    })
+    .catch(e => {
+        console.error('❌ Erreur fetch:', e);
+        if (typeof showAlertModal === 'function') {
+            showAlertModal({
+                title: 'Erreur',
+                message: 'Erreur de connexion: ' + e.message,
+                type: 'error'
+            });
+        } else {
+            alert('Erreur de connexion: ' + e.message);
+        }
+    });
+}
+
+function deleteVente(id) {
+    console.log('🗑️ deleteVente appelée avec id:', id);
+    
+    fetch('ajax/delete_vente.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({id_vente: id})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            console.log('✅ Suppression réussie');
+            if (typeof showAlertModal === 'function') {
+                showAlertModal({
+                    title: 'Succès',
+                    message: data.message,
+                    type: 'success'
+                });
+            } else {
+                alert(data.message);
+            }
+            // Recharger après 1 seconde
+            setTimeout(() => {
+                console.log('🔄 Rechargement page...');
+                location.reload();
+            }, 1000);
+        } else {
+            console.error('❌ Erreur suppression:', data.message);
+            if (typeof showAlertModal === 'function') {
+                showAlertModal({
+                    title: 'Erreur',
+                    message: data.message,
+                    type: 'error'
+                });
+            } else {
+                alert('Erreur: ' + data.message);
+            }
+        }
+    })
+    .catch(e => {
+        console.error('❌ Erreur fetch:', e);
+        if (typeof showAlertModal === 'function') {
+            showAlertModal({
+                title: 'Erreur',
+                message: 'Erreur de connexion: ' + e.message,
+                type: 'error'
+            });
+        } else {
+            alert('Erreur de connexion: ' + e.message);
+        }
+    });
 }
 
 </script>

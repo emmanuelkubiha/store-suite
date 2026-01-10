@@ -104,6 +104,49 @@ $top_produits = db_fetch_all("
     LIMIT 5
 ");
 
+// Données pour les graphiques - CA des 7 derniers jours
+$ca_7jours = db_fetch_all("
+    SELECT 
+        DATE(date_vente) as date,
+        COALESCE(SUM(montant_total), 0) as total
+    FROM ventes
+    WHERE date_vente >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    AND statut = 'validee'
+    GROUP BY DATE(date_vente)
+    ORDER BY date ASC
+");
+
+// Préparer les données pour les 7 derniers jours (même si pas de ventes)
+$dates_ca = [];
+$montants_ca = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $dates_ca[] = date('d/m', strtotime($date));
+    
+    $montant = 0;
+    foreach ($ca_7jours as $vente) {
+        if ($vente['date'] == $date) {
+            $montant = $vente['total'];
+            break;
+        }
+    }
+    $montants_ca[] = $montant;
+}
+
+// Répartition des ventes par mode de paiement (ce mois)
+$repartition_paiement = db_fetch_all("
+    SELECT 
+        mode_paiement,
+        COUNT(*) as nombre,
+        COALESCE(SUM(montant_total), 0) as total
+    FROM ventes
+    WHERE MONTH(date_vente) = MONTH(CURDATE())
+    AND YEAR(date_vente) = YEAR(CURDATE())
+    AND statut = 'validee'
+    GROUP BY mode_paiement
+    ORDER BY total DESC
+");
+
 include 'header.php';
 ?>
 
@@ -145,39 +188,67 @@ include 'header.php';
 }
 
 .stat-icon {
-    width: 68px;
-    height: 68px;
-    border-radius: 16px;
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 30px;
     flex-shrink: 0;
     background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%);
     color: white;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(-5deg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .stat-value {
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-size: 2.6rem;
+    font-weight: 800;
     line-height: 1.1;
-    margin: 12px 0 8px;
+    margin: 14px 0 8px;
     background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    letter-spacing: -1px;
 }
 
 .stat-label {
     color: #6c757d;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     font-weight: 600;
     margin-bottom: 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .stat-detail {
+    font-size: 0.85rem;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat-detail strong {
+    font-size: 0.9rem;
+}
     color: #495057;
     font-weight: 600;
     font-size: 1rem;
@@ -185,31 +256,43 @@ include 'header.php';
 }
 
 .welcome-banner {
+    background: white;
+    border-radius: 20px;
+    padding: 0;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border: 2px solid #e9ecef;
+}
+
+.welcome-banner-gradient {
     background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%);
-    border-radius: 24px;
-    color: white;
-    padding: 3rem 2.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    padding: 1.5rem 2.5rem;
     position: relative;
     overflow: hidden;
 }
 
-.welcome-banner::before {
+.welcome-banner-gradient::before {
     content: '';
     position: absolute;
     top: -50%;
-    right: -20%;
-    width: 100%;
+    right: -10%;
+    width: 80%;
     height: 200%;
-    background: rgba(255, 255, 255, 0.08);
-    transform: rotate(25deg);
-    z-index: 0;
+    background: rgba(255, 255, 255, 0.1);
+    transform: rotate(15deg);
+    pointer-events: none;
 }
 
-.welcome-banner > * {
+.welcome-banner-gradient > * {
     position: relative;
     z-index: 1;
+}
+
+.welcome-banner-stats {
+    background: #f8f9fa;
+    padding: 1rem 2.5rem;
+    border-top: 2px solid #e9ecef;
 }
 
 .welcome-banner h1 {
@@ -234,30 +317,40 @@ include 'header.php';
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 18px;
+    padding: 16px 20px;
     border-radius: 12px;
     border: 2px solid #e9ecef;
     background: white;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     color: #495057;
     font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .action-btn:hover {
     border-color: var(--couleur-user-primaire);
     background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%);
     color: white;
-    transform: translateX(5px);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 .action-btn-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover .action-btn-icon {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1) rotate(5deg);
+}
     background: #f8f9fa;
     transition: all 0.3s ease;
 }
@@ -269,8 +362,28 @@ include 'header.php';
 .chart-card {
     border-radius: 16px;
     border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.chart-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card {
+    border-radius: 14px;
+    border: 2px solid #e9ecef;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    border-color: var(--couleur-user-primaire);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-5px);
 }
 
 .table-hover tbody tr {
@@ -301,38 +414,130 @@ include 'header.php';
 .animated-card:nth-child(2) { animation-delay: 0.2s; }
 .animated-card:nth-child(3) { animation-delay: 0.3s; }
 .animated-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>
 
 <div class="page-wrapper">
     <div class="container-xl">
-        <!-- Bannière de bienvenue -->
-        <div class="welcome-banner">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div class="d-flex align-items-center mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-3" style="opacity: 0.9;">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304z" />
-                            <path d="M9 11v-5a3 3 0 0 1 6 0v5" />
-                        </svg>
-                        <h1 style="font-size: 2.2rem; font-weight: 700; margin: 0;">
-                            Bienvenue, <?php echo e($user_data['nom_complet']); ?> !
-                        </h1>
+        <!-- Bannière de bienvenue moderne -->
+        <div class="welcome-banner" style="animation: slideDown 0.6s ease-out;">
+            <!-- Section gradient avec informations utilisateur -->
+            <div class="welcome-banner-gradient">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1.25rem; border: 3px solid rgba(255,255,255,0.3);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 style="font-size: 1.75rem; font-weight: 700; margin: 0; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                                    Bienvenue, <?php echo e($user_data['nom_complet']); ?>
+                                </h1>
+                                <div class="mt-2">
+                                    <span class="badge" style="background: rgba(255,255,255,0.25); color: white; padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-right: 10px;">
+                                        <?php echo $is_admin ? 'Administrateur' : 'Vendeur'; ?>
+                                    </span>
+                                    <span style="color: rgba(255,255,255,0.9); font-size: 0.95rem; font-weight: 500;">
+                                        <?php echo e($nom_boutique); ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p class="mb-0 opacity-90" style="font-size: 1.05rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="5" width="16" height="16" rx="2" /><line x1="16" y1="3" x2="16" y2="7" /><line x1="8" y1="3" x2="8" y2="7" /><line x1="4" y1="11" x2="20" y2="11" /></svg>
-                        <?php
-                        $jours_fr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-                        $mois_fr = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-                        echo $jours_fr[date('w')] . ' ' . date('j') . ' ' . $mois_fr[date('n')] . ' ' . date('Y');
-                        ?>
-                    </p>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <a href="vente.php" class="btn btn-light btn-lg d-inline-flex align-items-center" style="font-weight: 600; text-decoration: none; padding: 12px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: all 0.3s ease; border: none;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 18px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="me-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <circle cx="6" cy="19" r="2" />
+                                <circle cx="17" cy="19" r="2" />
+                                <path d="M17 17h-11v-14h-2" />
+                                <path d="M6 5l14 1l-1 7h-13" />
+                            </svg>
+                            Nouvelle vente
+                            <svg xmlns="http://www.w3.org/2000/svg" class="ms-2" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <polyline points="9 6 15 12 9 18" />
+                            </svg>
+                        </a>
+                    </div>
                 </div>
-                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <a href="vente.php" class="btn btn-white btn-lg shadow-sm d-inline-flex align-items-center" style="font-weight: 600; cursor: pointer; text-decoration: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="6" cy="19" r="2" /><circle cx="17" cy="19" r="2" /><path d="M17 17h-11v-14h-2" /><path d="M6 5l14 1l-1 7h-13" /></svg>
-                        Nouvelle vente
-                    </a>
+            </div>
+            
+            <!-- Section statistiques rapides avec fond clair -->
+            <div class="welcome-banner-stats">
+                <div class="row align-items-center text-center">
+                    <div class="col-md-3 col-6 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="me-2" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="var(--couleur-user-primaire)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <rect x="4" y="5" width="16" height="16" rx="2" />
+                                <line x1="16" y1="3" x2="16" y2="7" />
+                                <line x1="8" y1="3" x2="8" y2="7" />
+                                <line x1="4" y1="11" x2="20" y2="11" />
+                            </svg>
+                            <span style="color: #6c757d; font-size: 0.9rem;">
+                                <?php
+                                $jours_fr = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                                $mois_fr = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+                                echo $jours_fr[date('w')] . ' ' . date('j') . ' ' . $mois_fr[date('n')];
+                                ?>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="me-2" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="var(--couleur-user-primaire)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <circle cx="6" cy="19" r="2" />
+                                <circle cx="17" cy="19" r="2" />
+                                <path d="M17 17h-11v-14h-2" />
+                                <path d="M6 5l14 1l-1 7h-13" />
+                            </svg>
+                            <span style="color: #6c757d; font-size: 0.9rem;">
+                                <strong style="color: var(--couleur-user-primaire);"><?php echo number_format($stats_jour['nombre_ventes']); ?></strong> ventes aujourd'hui
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="me-2" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="var(--couleur-user-primaire)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M16.7 8a3 3 0 0 0 -2.7 -2h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1 -2.7 -2" />
+                                <path d="M12 3v3m0 12v3" />
+                            </svg>
+                            <span style="color: #6c757d; font-size: 0.9rem;">
+                                <strong style="color: var(--couleur-user-primaire);"><?php echo format_montant($stats_jour['chiffre_affaires']); ?></strong>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="me-2" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="var(--couleur-user-primaire)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3" />
+                                <line x1="12" y1="12" x2="20" y2="7.5" />
+                                <line x1="12" y1="12" x2="12" y2="21" />
+                                <line x1="12" y1="12" x2="4" y2="7.5" />
+                            </svg>
+                            <span style="color: #6c757d; font-size: 0.9rem;">
+                                <strong style="color: var(--couleur-user-primaire);"><?php echo number_format($stats_stock['total_produits']); ?></strong> produits
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -349,22 +554,20 @@ include 'header.php';
                         <span>Nouvelle vente</span>
                     </a>
                 </div>
-                <?php if ($is_admin): ?>
                 <div class="col-md-3 col-sm-6">
-                    <a href="listes.php?page=produits" class="action-btn w-100">
+                    <a href="mes_ventes.php" class="action-btn w-100">
                         <div class="action-btn-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3" /><line x1="12" y1="12" x2="20" y2="7.5" /><line x1="12" y1="12" x2="12" y2="21" /><line x1="12" y1="12" x2="4" y2="7.5" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                         </div>
-                        <span>Produits</span>
+                        <span>Mes Ventes</span>
                     </a>
                 </div>
-                <?php endif; ?>
                 <div class="col-md-3 col-sm-6">
-                    <a href="listes.php?page=clients" class="action-btn w-100">
+                    <a href="profil.php" class="action-btn w-100">
                         <div class="action-btn-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="4"></circle><path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855"></path></svg>
                         </div>
-                        <span>Clients</span>
+                        <span>Mon Profil</span>
                     </a>
                 </div>
                 <div class="col-md-3 col-sm-6">
@@ -415,10 +618,10 @@ include 'header.php';
         </div>
 
         <!-- Cartes de statistiques principales -->
-        <div class="row row-deck row-cards mb-4">
+                <div class="row row-deck row-cards mb-4">
             <!-- Ventes aujourd'hui -->
             <div class="col-sm-6 col-lg-3 animated-card">
-                <div class="stat-card">
+                <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Nombre total de ventes effectuées aujourd'hui avec le chiffre d'affaires généré">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-start mb-3">
                             <div class="stat-icon">
@@ -428,7 +631,7 @@ include 'header.php';
                         <div class="stat-label">Ventes du jour</div>
                         <div class="stat-value"><?php echo number_format($stats_jour['nombre_ventes']); ?></div>
                         <div class="stat-detail">
-                            <strong><?php echo format_montant($stats_jour['chiffre_affaires']); ?></strong>
+                            <strong style="font-size: 0.85rem;"><?php echo format_montant($stats_jour['chiffre_affaires']); ?></strong>
                         </div>
                     </div>
                 </div>
@@ -436,7 +639,7 @@ include 'header.php';
             
             <!-- Ventes ce mois -->
             <div class="col-sm-6 col-lg-3 animated-card">
-                <div class="stat-card">
+                <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Nombre total de ventes effectuées ce mois avec le chiffre d'affaires cumulé">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-start mb-3">
                             <div class="stat-icon">
@@ -446,7 +649,7 @@ include 'header.php';
                         <div class="stat-label">Ventes du mois</div>
                         <div class="stat-value"><?php echo number_format($stats_mois['nombre_ventes']); ?></div>
                         <div class="stat-detail">
-                            <strong><?php echo format_montant($stats_mois['chiffre_affaires']); ?></strong>
+                            <strong style="font-size: 0.85rem;"><?php echo format_montant($stats_mois['chiffre_affaires']); ?></strong>
                         </div>
                     </div>
                 </div>
@@ -455,7 +658,7 @@ include 'header.php';
             <?php if ($is_admin): ?>
             <!-- Bénéfice aujourd'hui -->
             <div class="col-sm-6 col-lg-3 animated-card">
-                <div class="stat-card">
+                <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Bénéfice net réalisé aujourd'hui (différence entre prix de vente et prix d'achat)">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-start mb-3">
                             <div class="stat-icon">
@@ -463,14 +666,14 @@ include 'header.php';
                             </div>
                         </div>
                         <div class="stat-label">Bénéfice jour <span class="badge bg-teal ms-2">Admin</span></div>
-                        <div class="stat-value"><?php echo format_montant($benefices_jour); ?></div>
+                        <div class="stat-value" style="font-size: 1.8rem;"><?php echo format_montant($benefices_jour); ?></div>
                     </div>
                 </div>
             </div>
             
             <!-- Bénéfice ce mois -->
             <div class="col-sm-6 col-lg-3 animated-card">
-                <div class="stat-card">
+                <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Bénéfice net cumulé du mois en cours">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-start mb-3">
                             <div class="stat-icon">
@@ -478,14 +681,14 @@ include 'header.php';
                             </div>
                         </div>
                         <div class="stat-label">Bénéfice mois <span class="badge bg-cyan ms-2">Admin</span></div>
-                        <div class="stat-value"><?php echo format_montant($benefices_mois); ?></div>
+                        <div class="stat-value" style="font-size: 1.8rem;"><?php echo format_montant($benefices_mois); ?></div>
                     </div>
                 </div>
             </div>
             <?php else: ?>
             <!-- Produits en stock -->
             <div class="col-sm-6 col-lg-3 animated-card">
-                <div class="stat-card">
+                <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Nombre total de produits différents en stock avec la quantité totale disponible">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-start mb-3">
                             <div class="stat-icon">
@@ -503,7 +706,7 @@ include 'header.php';
             
             <!-- Valeur du stock -->
             <div class="col-sm-6 col-lg-3 animated-card">
-                <div class="stat-card">
+                <div class="stat-card" data-bs-toggle="tooltip" data-bs-placement="top" title="Valeur totale du stock actuel basée sur les prix d'achat">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-start mb-3">
                             <div class="stat-icon">
@@ -511,24 +714,134 @@ include 'header.php';
                             </div>
                         </div>
                         <div class="stat-label">Valeur stock</div>
-                        <div class="stat-value"><?php echo format_montant($stats_stock['valeur_stock']); ?></div>
+                        <div class="stat-value" style="font-size: 1.8rem;"><?php echo format_montant($stats_stock['valeur_stock']); ?></div>
                     </div>
                 </div>
             </div>
             <?php endif; ?>
         </div>
 
+        <!-- Synthèse rapide du mois -->
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card" style="background: white; border: 2px solid #e9ecef; border-radius: 14px; padding: 1.5rem; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Chiffre d'affaires total du mois">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 14px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.7 8a3 3 0 0 0 -2.7 -2h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1 -2.7 -2" /><path d="M12 3v3m0 12v3" /></svg>
+                        </div>
+                        <div class="ms-3">
+                            <small style="color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">CA du mois</small>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: var(--couleur-user-primaire); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <?php echo format_montant($stats_mois['chiffre_affaires']); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card" style="background: white; border: 2px solid #e9ecef; border-radius: 14px; padding: 1.5rem; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Nombre total de ventes du mois">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="width: 60px; height: 60px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 14px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="6" cy="19" r="2" /><circle cx="17" cy="19" r="2" /><path d="M17 17h-11v-14h-2" /><path d="M6 5l14 1l-1 7h-13" /></svg>
+                        </div>
+                        <div class="ms-3">
+                            <small style="color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Ventes du mois</small>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: var(--couleur-user-primaire); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <?php echo number_format($stats_mois['nombre_ventes']); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php if ($is_admin): ?>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card" style="background: white; border: 2px solid #e9ecef; border-radius: 14px; padding: 1.5rem; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Bénéfice net généré ce mois">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="width: 60px; height: 60px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 14px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </div>
+                        <div class="ms-3">
+                            <small style="color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Bénéfice mois</small>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: var(--couleur-user-primaire); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <?php echo format_montant($benefices_mois); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card" style="background: white; border: 2px solid #e9ecef; border-radius: 14px; padding: 1.5rem; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Ticket moyen du mois">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="width: 60px; height: 60px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 14px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>
+                        </div>
+                        <div class="ms-3">
+                            <small style="color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Ticket moyen</small>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: var(--couleur-user-primaire); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <?php echo format_montant($stats_mois['nombre_ventes'] > 0 ? $stats_mois['chiffre_affaires'] / $stats_mois['nombre_ventes'] : 0); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card" style="background: white; border: 2px solid #e9ecef; border-radius: 14px; padding: 1.5rem; cursor: pointer;" data-bs-toggle="tooltip" data-bs-placement="top" title="Ticket moyen du mois">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon" style="width: 60px; height: 60px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 14px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>
+                        </div>
+                        <div class="ms-3">
+                            <small style="color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Ticket moyen</small>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: var(--couleur-user-primaire); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <?php echo format_montant($stats_mois['nombre_ventes'] > 0 ? $stats_mois['chiffre_affaires'] / $stats_mois['nombre_ventes'] : 0); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-lg-9">
+                <div class="chart-card" style="background: #f8f9fa; border: 2px solid #e9ecef;" data-bs-toggle="tooltip" data-bs-placement="top" title="Suivi quotidien du chiffre d'affaires sur une semaine pour visualiser la tendance">
+                    <div class="card-header" style="background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%); color: white; border: none;">
+                        <h3 class="card-title mb-0 d-flex align-items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="4" y1="19" x2="20" y2="19" /><polyline points="4 15 8 9 12 11 16 6 20 10" /></svg>
+                            Évolution du CA (7 derniers jours)
+                        </h3>
+                    </div>
+                    <div class="card-body" style="background: white;">
+                        <canvas id="chartCA" style="height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <div class="chart-card" style="background: #f8f9fa; border: 2px solid #e9ecef;" data-bs-toggle="tooltip" data-bs-placement="top" title="Distribution des ventes par mode de paiement utilisé ce mois">
+                    <div class="card-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;">
+                        <h3 class="card-title mb-0 d-flex align-items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9" /><path d="M14.5 9a3.5 4 0 1 0 0 6" /></svg>
+                            Modes de paiement
+                        </h3>
+                    </div>
+                    <div class="card-body" style="background: white;">
+                        <canvas id="chartRepartition" style="height: 180px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row row-deck row-cards">
             <!-- Dernières ventes -->
             <div class="col-lg-8">
-                <div class="chart-card">
-                    <div class="card-header" style="background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%); color: white;">
-                        <h3 class="card-title mb-0">
+                <div class="chart-card" style="background: #f8f9fa; border: 2px solid #e9ecef;">
+                    <div class="card-header" style="background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%); color: white; border: none;">
+                        <h3 class="card-title mb-0 d-flex align-items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="9 11 12 14 20 6" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg>
                             Dernières ventes
                         </h3>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="background: white;">
                         <div class="table-responsive">
                             <table class="table table-hover card-table table-vcenter mb-0">
                                 <thead>
@@ -553,28 +866,28 @@ include 'header.php';
                                         <?php foreach ($dernieres_ventes as $vente): ?>
                                             <tr>
                                                 <td>
-                                                    <span class="badge bg-primary-lt"><?php echo e($vente['numero_facture']); ?></span>
+                                                    <span class="badge fw-bold" style="background-color: <?php echo $couleur_primaire; ?>; color: white; font-size: 0.75rem;"><?php echo e($vente['numero_facture']); ?></span>
                                                 </td>
                                                 <td>
                                                     <div class="d-flex align-items-center">
                                                         <div class="avatar avatar-sm me-2" style="background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%); color: white;">
                                                             <?php echo strtoupper(substr($vente['nom_client'] ?: 'C', 0, 1)); ?>
                                                         </div>
-                                                        <?php echo e($vente['nom_client'] ?: 'Client Comptoir'); ?>
+                                                        <small><?php echo e($vente['nom_client'] ?: 'Client Comptoir'); ?></small>
                                                     </div>
                                                 </td>
-                                                <td class="text-muted"><?php echo e($vente['vendeur']); ?></td>
+                                                <td class="text-muted"><small><?php echo e($vente['vendeur']); ?></small></td>
                                                 <td class="text-end">
-                                                    <strong><?php echo format_montant($vente['montant_total']); ?></strong>
+                                                    <strong style="font-size: 0.9rem;"><?php echo format_montant($vente['montant_total']); ?></strong>
                                                 </td>
                                                 <td>
-                                                    <div class="text-muted">
-                                                        <?php echo date('d/m/Y \u00e0 H:i', strtotime($vente['date_vente'])); ?>
+                                                    <div class="text-muted" style="font-size: 0.85rem;">
+                                                        <?php echo date('d/m/Y', strtotime($vente['date_vente'])); ?>
                                                     </div>
                                                 </td>
                                                 <td class="text-end">
-                                                    <a href="facture.php?id=<?php echo $vente['id_vente']; ?>" class="btn btn-sm btn-primary" title="Voir la facture">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                                                    <a href="facture_impression.php?id=<?php echo $vente['id_vente']; ?>" class="btn btn-sm btn-icon btn-ghost-info" target="_blank" title="Imprimer la facture">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /><path d="M9 5h6" /><path d="M9 19h6" /><rect x="17" y="13" width="6" height="4" rx="1" /></svg>
                                                     </a>
                                                 </td>
                                             </tr>
@@ -586,7 +899,7 @@ include 'header.php';
                     </div>
                     <?php if (!empty($dernieres_ventes)): ?>
                         <div class="card-footer text-center">
-                            <a href="listes.php?page=ventes" class="btn btn-link">
+                            <a href="mes_ventes.php" class="btn btn-link">
                                 Voir toutes les ventes
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="9 6 15 12 9 18" /></svg>
                             </a>
@@ -598,14 +911,14 @@ include 'header.php';
             <!-- Produits en alerte + Top produits -->
             <div class="col-lg-4">
                 <!-- Alertes de stock -->
-                <div class="chart-card mb-3">
-                    <div class="card-header bg-danger" style="color: white;">
-                        <h3 class="card-title mb-0">
+                <div class="chart-card mb-3" style="background: #f8f9fa; border: 2px solid #e9ecef;">
+                    <div class="card-header bg-danger" style="color: white; border: none;">
+                        <h3 class="card-title mb-0 d-flex align-items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75" /></svg>
                             Alertes stock
                         </h3>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="background: white;">
                         <?php if (empty($produits_alerte)): ?>
                             <div class="text-center text-muted py-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon text-success mb-2" width="48" height="48" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polyline points="9 11 12 14 20 6" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg>
@@ -646,14 +959,14 @@ include 'header.php';
                 </div>
 
                 <!-- Top produits -->
-                <div class="chart-card">
-                    <div class="card-header" style="background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%); color: white;">
-                        <h3 class="card-title mb-0">
+                <div class="chart-card" style="background: #f8f9fa; border: 2px solid #e9ecef;">
+                    <div class="card-header" style="background: linear-gradient(135deg, var(--couleur-user-primaire) 0%, var(--couleur-user-secondaire) 100%); color: white; border: none;">
+                        <h3 class="card-title mb-0 d-flex align-items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 6l-8 4l8 4l8 -4l-8 -4" /><path d="M4 14l8 4l8 -4" /></svg>
                             Top produits du mois
                         </h3>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" style="background: white;">
                         <?php if (empty($top_produits)): ?>
                             <div class="text-center text-muted py-4">
                                 Aucune vente ce mois
@@ -692,5 +1005,210 @@ include 'header.php';
         </div>
     </div>
 </div>
+
+<!-- Charger Chart.js depuis CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Couleurs du thème
+    const couleurPrimaire = '<?php echo $couleur_primaire; ?>';
+    const couleurSecondaire = '<?php echo $couleur_secondaire; ?>';
+    
+    // Configuration commune pour tous les graphiques
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.padding = 15;
+    
+    // ========================================
+    // GRAPHIQUE 1 : Évolution du CA (7 jours)
+    // ========================================
+    const ctxCA = document.getElementById('chartCA');
+    if (ctxCA) {
+        new Chart(ctxCA, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode($dates_ca); ?>,
+                datasets: [{
+                    label: 'Chiffre d\'affaires',
+                    data: <?php echo json_encode($montants_ca); ?>,
+                    borderColor: couleurPrimaire,
+                    backgroundColor: function(context) {
+                        const ctx = context.chart.ctx;
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                        gradient.addColorStop(0, couleurPrimaire + '40');
+                        gradient.addColorStop(1, couleurPrimaire + '00');
+                        return gradient;
+                    },
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: couleurPrimaire,
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: couleurPrimaire,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return new Intl.NumberFormat('fr-FR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                }).format(context.parsed.y) + ' <?php echo $devise; ?>';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('fr-FR', {
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
+                                }).format(value);
+                            }
+                        },
+                        grid: {
+                            color: '#f0f0f0',
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // ========================================
+    // GRAPHIQUE 2 : Répartition des ventes
+    // ========================================
+    const ctxRepartition = document.getElementById('chartRepartition');
+    if (ctxRepartition) {
+        <?php
+        $modes = [];
+        $montants = [];
+        $couleurs = [
+            'especes' => '#10b981',
+            'carte' => '#3b82f6',
+            'mobile_money' => '#f59e0b',
+            'cheque' => '#8b5cf6',
+            'credit' => '#ef4444'
+        ];
+        
+        $labels_modes = [
+            'especes' => 'Espèces',
+            'carte' => 'Carte Bancaire',
+            'mobile_money' => 'Mobile Money',
+            'cheque' => 'Chèque',
+            'credit' => 'Crédit'
+        ];
+        
+        foreach ($repartition_paiement as $repartition) {
+            $mode = $repartition['mode_paiement'];
+            $modes[] = $labels_modes[$mode] ?? ucfirst($mode);
+            $montants[] = $repartition['total'];
+        }
+        ?>
+        
+        new Chart(ctxRepartition, {
+            type: 'doughnut',
+            data: {
+                labels: <?php echo json_encode($modes); ?>,
+                datasets: [{
+                    data: <?php echo json_encode($montants); ?>,
+                    backgroundColor: [
+                        '#10b981',
+                        '#3b82f6',
+                        '#f59e0b',
+                        '#8b5cf6',
+                        '#ef4444'
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = new Intl.NumberFormat('fr-FR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                }).format(context.parsed);
+                                
+                                // Calculer le pourcentage
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                
+                                return label + ': ' + value + ' <?php echo $devise; ?> (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 
 <?php include 'footer.php'; ?>

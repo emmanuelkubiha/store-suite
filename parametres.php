@@ -39,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $logoData = substr($logoData, strpos($logoData, ',') + 1);
                 $logoData = base64_decode($logoData);
                 
-                // Générer un nom unique
-                $logoFilename = 'logo_' . uniqid() . '.png';
+                // Générer un nom standardisé
+                $logoFilename = 'logo_boutique.png';
                 $logoPath = __DIR__ . '/uploads/logos/' . $logoFilename;
                 
                 // Créer le dossier si nécessaire
@@ -50,10 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Sauvegarder le fichier
                 if (file_put_contents($logoPath, $logoData)) {
-                    // Supprimer l'ancien logo si existe
-                    if (!empty($config['logo_boutique']) && file_exists(__DIR__ . '/uploads/logos/' . $config['logo_boutique'])) {
-                        @unlink(__DIR__ . '/uploads/logos/' . $config['logo_boutique']);
-                    }
                     $logo_boutique = $logoFilename;
                 }
             }
@@ -475,6 +471,191 @@ include 'header.php';
                 </div>
             </div>
         </div>
+
+        <!-- Section Réinitialisations -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card border-danger shadow-lg">
+                    <div class="card-header border-danger bg-gradient" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                        <h3 class="card-title mb-0 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="28" height="28" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <polyline points="3 5 9 5 9 11 3 11 3 5"/>
+                                <polyline points="15 13 21 13 21 19 15 19 15 13"/>
+                                <path d="M9 5h6 a 2 2 0 0 0 2 -2 a 2 2 0 0 0 -2 -2 h -6 a 2 2 0 0 0 -2 2 a 2 2 0 0 0 2 2"/>
+                                <path d="M5 15h6 a 2 2 0 0 0 2 -2 a 2 2 0 0 0 -2 -2 h -6 a 2 2 0 0 0 -2 2 a 2 2 0 0 0 2 2"/>
+                            </svg>
+                            Zone de Réinitialisation du Système
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="alert alert-danger border-0 rounded-lg mb-4" style="background-color: #f8d7da;">
+                            <div class="d-flex align-items-start">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon me-3 mt-1 flex-shrink-0" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>
+                                    <path d="M12 8v4"/>
+                                    <path d="M12 16h.01"/>
+                                </svg>
+                                <div>
+                                    <strong>⚠️ ATTENTION !</strong> Les opérations ci-dessous sont <strong>irréversibles</strong>. Une confirmation ET votre mot de passe seront requis. <strong>Aucune sauvegarde ne sera possible</strong> une fois exécutées.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Réinitialisation Ventes -->
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-1 border-danger h-100 hover-shadow" style="transition: all 0.3s ease;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="badge badge-lg bg-danger me-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <polyline points="3 6 5 4 7 6"/>
+                                                    <path d="M5 4v5a8 8 0 0 0 13.95 7m1.3 -4a8 8 0 0 0 -13.95 -7v5"/>
+                                                </svg>
+                                            </div>
+                                            <h5 class="card-title mb-0 text-danger">Supprimer les ventes</h5>
+                                        </div>
+                                        <p class="text-muted small mb-3">Efface <strong><?php echo e($stats_systeme['nb_ventes'] ?? 0); ?> ventes</strong> de la base de données</p>
+                                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="reinitVentes()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M4 7l16 0"/>
+                                                <path d="M10 11l0 6"/>
+                                                <path d="M14 11l0 6"/>
+                                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            </svg>
+                                            Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Réinitialisation Produits -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-1 border-danger h-100 hover-shadow" style="transition: all 0.3s ease;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="badge badge-lg bg-danger me-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <path d="M6 19a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2 h10a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-10z"/>
+                                                    <path d="M9 3v-1"/>
+                                                    <path d="M15 3v-1"/>
+                                                    <line x1="6" y1="8" x2="18" y2="8"/>
+                                                </svg>
+                                            </div>
+                                            <h5 class="card-title mb-0 text-danger">Supprimer produits</h5>
+                                        </div>
+                                        <p class="text-muted small mb-3">Efface <strong><?php echo e($stats_systeme['nb_produits'] ?? 0); ?> produits</strong> et le stock</p>
+                                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="reinitProduits()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M4 7l16 0"/>
+                                                <path d="M10 11l0 6"/>
+                                                <path d="M14 11l0 6"/>
+                                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            </svg>
+                                            Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Réinitialisation Clients -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-1 border-danger h-100 hover-shadow" style="transition: all 0.3s ease;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="badge badge-lg bg-danger me-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <circle cx="9" cy="7" r="4"/>
+                                                    <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                                                    <path d="M16 11h6"/>
+                                                </svg>
+                                            </div>
+                                            <h5 class="card-title mb-0 text-danger">Supprimer clients</h5>
+                                        </div>
+                                        <p class="text-muted small mb-3">Efface <strong><?php echo e($stats_systeme['nb_clients'] ?? 0); ?> clients</strong> (garde client par défaut)</p>
+                                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="reinitClients()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M4 7l16 0"/>
+                                                <path d="M10 11l0 6"/>
+                                                <path d="M14 11l0 6"/>
+                                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            </svg>
+                                            Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Réinitialisation Utilisateurs -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-1 border-danger h-100 hover-shadow" style="transition: all 0.3s ease;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="badge badge-lg bg-danger me-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <circle cx="9" cy="7" r="4"/>
+                                                    <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                                                    <path d="M16 5a4 4 0 0 1 4 4v2"/>
+                                                </svg>
+                                            </div>
+                                            <h5 class="card-title mb-0 text-danger">Supprimer utilisateurs</h5>
+                                        </div>
+                                        <p class="text-muted small mb-3">Efface <strong><?php echo e($stats_systeme['nb_utilisateurs'] ?? 0); ?> utilisateurs</strong> (vous êtes gardé)</p>
+                                        <button type="button" class="btn btn-danger btn-sm w-100" onclick="reinitUtilisateurs()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M4 7l16 0"/>
+                                                <path d="M10 11l0 6"/>
+                                                <path d="M14 11l0 6"/>
+                                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            </svg>
+                                            Réinitialiser
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Réinitialisation Complète -->
+                            <div class="col-12 mb-3">
+                                <div class="card border-2 border-dark h-100" style="background: linear-gradient(135deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.02) 100%);">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="badge badge-lg bg-dark me-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18"/>
+                                                    <path d="M12 9a3 3 0 1 0 0 6a3 3 0 0 0 0 -6"/>
+                                                </svg>
+                                            </div>
+                                            <h5 class="card-title mb-0"> RÉINITIALISATION COMPLÈTE</h5>
+                                        </div>
+                                        <p class="text-muted small mb-3"><strong>DANGER ULTIME !</strong> Efface <strong>TOUT</strong> : ventes, produits, clients, utilisateurs, catégories, paramètres. Le système sera ramené à zéro (état neuf).</p>
+                                        <button type="button" class="btn btn-dark w-100" onclick="reinitComplet()">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M3 12a9 9 0 1 0 9 -9a9 9 0 0 0 -9 9"/>
+                                                <path d="M3.6 9h16.8"/>
+                                                <path d="M3.6 15h16.8"/>
+                                            </svg>
+                                            RÉINITIALISER LE SYSTÈME
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -503,6 +684,142 @@ include 'header.php';
 <script>
 let cropper = null;
 let currentImageFile = null;
+
+// Fonctions de réinitialisation
+let currentReinitType = null;
+
+// Modal pour demander le mot de passe
+function showPasswordModal(type, message) {
+    const html = `
+        <div style="text-align: center;">
+            <p class="text-danger mb-3"><strong>${message}</strong></p>
+            <div class="mb-3">
+                <label class="form-label">Entrez votre mot de passe pour confirmer:</label>
+                <input type="password" id="reinitPassword" class="form-control" placeholder="Mot de passe..." autofocus>
+            </div>
+        </div>
+    `;
+    
+    currentReinitType = type;
+    
+    // Créer un modal custom avec Bootstrap
+    const modalId = 'passwordModal_' + Date.now();
+    const modalHtml = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" style="display: none;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-danger">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Confirmation de Réinitialisation</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${html}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmerReinitAvecPassword('${type}', '${modalId}')">
+                            Confirmer la réinitialisation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter le modal au DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Afficher le modal
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
+    
+    // Permettre Entrée pour valider
+    document.getElementById('reinitPassword').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            confirmerReinitAvecPassword(type, modalId);
+        }
+    });
+}
+
+function confirmerReinitAvecPassword(type, modalId) {
+    const password = document.getElementById('reinitPassword').value;
+    
+    if (!password) {
+        showAlertModal({
+            title: 'Erreur',
+            message: 'Le mot de passe est requis',
+            type: 'error'
+        });
+        return;
+    }
+    
+    // Fermer le modal
+    bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+    
+    // Exécuter la réinitialisation
+    executerReinit(type, password);
+}
+
+function reinitVentes() {
+    showPasswordModal('ventes', 'Supprimer TOUTES les ventes ? Cette action est irréversible.');
+}
+
+function reinitProduits() {
+    showPasswordModal('produits', 'Supprimer TOUS les produits ? Cette action est irréversible.');
+}
+
+function reinitClients() {
+    showPasswordModal('clients', 'Supprimer TOUS les clients ? Cette action est irréversible.');
+}
+
+function reinitUtilisateurs() {
+    showPasswordModal('utilisateurs', 'Supprimer TOUS les utilisateurs ? Cette action est irréversible.');
+}
+
+function reinitComplet() {
+    showPasswordModal('complet', '⚠️ RÉINITIALISATION COMPLÈTE ! Tout sera effacé (ventes, produits, clients, paramètres). Cette action est irréversible !');
+}
+
+function executerReinit(type, password) {
+    fetch('ajax/reinitialiser_donnees.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'type=' + encodeURIComponent(type) + '&password=' + encodeURIComponent(password)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showAlertModal({
+                title: 'Succès ✅',
+                message: data.message + ' La page va se rafraîchir...',
+                type: 'success',
+                onClose: function() {
+                    // Rafraîchir la page après 1.5 secondes
+                    setTimeout(function() {
+                        window.location.href = window.location.pathname;
+                    }, 1500);
+                }
+            });
+            // Fallback : rafraîchir même si le modal ne se ferme pas
+            setTimeout(function() {
+                window.location.href = window.location.pathname;
+            }, 2000);
+        } else {
+            showAlertModal({
+                title: 'Erreur ❌',
+                message: data.message,
+                type: 'error'
+            });
+        }
+    })
+    .catch(err => {
+        showAlertModal({
+            title: 'Erreur',
+            message: 'Erreur lors de la réinitialisation: ' + err.message,
+            type: 'error'
+        });
+    });
+}
 
 // Sélection du logo
 function selectLogo(input) {

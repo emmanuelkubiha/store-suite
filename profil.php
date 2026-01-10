@@ -8,7 +8,7 @@ $page_title = 'Mon Profil';
 
 // Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nom = trim($_POST['nom_utilisateur'] ?? '');
+    $nom = trim($_POST['nom_complet'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $current_password = $_POST['current_password'] ?? '';
     $new_password = $_POST['new_password'] ?? '';
@@ -40,14 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Mettre à jour avec nouveau mot de passe
             $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
             db_execute(
-                "UPDATE utilisateurs SET nom_utilisateur = ?, email = ?, password = ? WHERE id_utilisateur = ?",
+                "UPDATE utilisateurs SET nom_complet = ?, email = ?, password = ? WHERE id_utilisateur = ?",
                 [$nom, $email, $password_hash, $user_id]
             );
             $success = 'Profil et mot de passe mis à jour avec succès';
         } else {
             // Mise à jour sans changer le mot de passe
             db_execute(
-                "UPDATE utilisateurs SET nom_utilisateur = ?, email = ? WHERE id_utilisateur = ?",
+                "UPDATE utilisateurs SET nom_complet = ?, email = ? WHERE id_utilisateur = ?",
                 [$nom, $email, $user_id]
             );
             $success = 'Profil mis à jour avec succès';
@@ -60,6 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
+}
+
+// Passer le succès en variable JS plutôt que l'afficher sur la page
+$success_for_modal = false;
+if (isset($success) && $success) {
+    $success_for_modal = true;
 }
 
 // Statistiques personnelles
@@ -125,17 +131,19 @@ include 'header.php';
         <a class="btn-close" data-bs-dismiss="alert"></a>
     </div>
     <?php endif; ?>
-
-    <?php if (isset($success) && $success): ?>
-    <div class="alert alert-success alert-dismissible" role="alert">
-        <div class="d-flex">
-            <div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9" /><path d="M9 12l2 2l4 -4" /></svg>
-            </div>
-            <div><?php echo e($success); ?></div>
-        </div>
-        <a class="btn-close" data-bs-dismiss="alert"></a>
-    </div>
+    
+    <?php if ($success_for_modal): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof showAlertModal === 'function') {
+                showAlertModal({
+                    title: 'Succès',
+                    message: '<?php echo addslashes($success); ?>',
+                    type: 'success'
+                });
+            }
+        });
+    </script>
     <?php endif; ?>
 
     <div class="row">
@@ -223,7 +231,7 @@ include 'header.php';
                     <form method="post">
                         <div class="mb-3">
                             <label class="form-label required">Nom complet</label>
-                            <input type="text" class="form-control" name="nom_utilisateur" value="<?php echo e($user_name); ?>" required>
+                            <input type="text" class="form-control" name="nom_complet" value="<?php echo e($user_name); ?>" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>

@@ -42,31 +42,27 @@ try {
             ]);
             
             // Enregistrer le mouvement de stock
+            $produit_current = db_fetch_one("SELECT quantite_stock FROM produits WHERE id_produit = ?", [$detail['id_produit']]);
+            $quantite_avant = $produit_current['quantite_stock'];
+            $quantite_apres = $quantite_avant + $detail['quantite'];
+            
             db_execute("INSERT INTO mouvements_stock (
                 id_produit,
                 type_mouvement,
                 quantite,
-                stock_avant,
-                stock_apres,
+                quantite_avant,
+                quantite_apres,
                 id_utilisateur,
                 motif,
                 date_mouvement
-            ) SELECT 
-                ?,
-                'entree',
-                ?,
-                quantite_stock - ?,
-                quantite_stock,
-                ?,
-                ?,
-                NOW()
-            FROM produits WHERE id_produit = ?", [
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())", [
                 $detail['id_produit'],
+                'entree',
                 $detail['quantite'],
-                $detail['quantite'],
+                $quantite_avant,
+                $quantite_apres,
                 $user_id,
-                "Annulation vente - Facture " . $vente['numero_facture'],
-                $detail['id_produit']
+                "Annulation vente - Facture " . $vente['numero_facture']
             ]);
         }
         

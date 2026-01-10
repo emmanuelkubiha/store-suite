@@ -39,15 +39,17 @@
                                 <path d="M14.5 9a3.5 4 0 1 0 0 6"/>
                             </svg>
                             <script>document.write(new Date().getFullYear());</script>
-                            <a href="accueil.php" class="link-secondary fw-semibold text-decoration-none"><?php echo isset($nom_boutique) ? e($nom_boutique) : 'Store Suite'; ?></a>
+                            <a href="https://cd.linkedin.com/in/emmanuel-baraka" target="_blank" class="link-secondary fw-semibold text-decoration-none"><?php echo isset($nom_boutique) ? e($nom_boutique) : 'Store Suite'; ?></a>
                         </div>
-                        <div class="text-muted small mt-1">Tous droits reserves</div>
+                        <div class="text-muted small mt-1">
+                            <a href="aide.php" class="link-secondary text-decoration-none">Aide & À Propos</a> | Tous droits reserves
+                        </div>
                     </div>
                     
                     <div class="col-md-4 text-center text-md-end">
                         <div class="text-muted small">
                             Propulse par 
-                            <a href="#" class="link-primary fw-bold text-decoration-none">
+                            <a href="https://cd.linkedin.com/in/emmanuel-baraka" target="_blank" class="link-primary fw-bold text-decoration-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                     <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"/>

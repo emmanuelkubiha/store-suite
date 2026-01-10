@@ -45,12 +45,15 @@ mb_internal_encoding('UTF-8');
             margin: 0 2px;
             color: #495057 !important;
             transition: all 0.3s ease;
+            cursor: pointer;
+            z-index: 10;
+            pointer-events: auto;
         }
         
         .nav-item .nav-link:hover {
-            transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
             background: #e9ecef;
+            z-index: 20;
         }
         
         /* Menu actif - TOUJOURS EN BLANC */
@@ -270,6 +273,15 @@ mb_internal_encoding('UTF-8');
                                 </svg>
                                 Mon profil
                             </a>
+                            <a href="aide.php" class="dropdown-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <circle cx="12" cy="12" r="9"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                    <polyline points="11 12 12 12 12 16 13 16"/>
+                                </svg>
+                                Aide & À Propos
+                            </a>
                             <?php if ($is_admin): ?>
                             <div class="dropdown-divider"></div>
                             <div class="dropdown-item dropdown-item-heading">
@@ -362,7 +374,8 @@ mb_internal_encoding('UTF-8');
                                 </a>
                             </li>
                             
-                            <!-- Produits -->
+                            <!-- Produits & Stock (Admin Only) -->
+                            <?php if ($is_admin): ?>
                             <li class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'listes.php') ? 'active' : ''; ?>">
                                 <a class="nav-link d-flex align-items-center px-3 py-2 rounded-2" href="listes.php">
                                     <span class="nav-link-icon d-inline-block me-2">
@@ -377,8 +390,10 @@ mb_internal_encoding('UTF-8');
                                         </svg>
                                     </span>
                                     <span class="nav-link-title fw-medium">Produits & Stock</span>
+                                    <span class="badge bg-warning ms-2" style="font-size: 0.65rem;">Admin</span>
                                 </a>
                             </li>
+                            <?php endif; ?>
                             
                             <!-- Rapports -->
                             <li class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'rapports.php') ? 'active' : ''; ?>">
@@ -398,7 +413,7 @@ mb_internal_encoding('UTF-8');
                             <!-- Administration (Admin Only) -->
                             <?php if ($is_admin): ?>
                             <li class="nav-item dropdown <?php echo in_array(basename($_SERVER['PHP_SELF']), ['tableau_de_bord.php', 'parametres.php']) ? 'active' : ''; ?>">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center px-3 py-2 rounded-2" href="#navbar-admin" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center px-3 py-2 rounded-2" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false">
                                     <span class="nav-link-icon d-inline-block me-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>

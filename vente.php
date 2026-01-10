@@ -283,28 +283,48 @@ include 'header.php';
 
 <!-- Modal Mode de Paiement -->
 <div class="modal fade" id="paymentModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Mode de Paiement</h5>
+                <h6 class="modal-title mb-0">Mode de Paiement</h6>
             </div>
-            <div class="modal-body">
-                <p class="mb-4">Sélectionnez le mode de paiement pour cette vente :</p>
-                <div class="d-grid gap-3">
-                    <button type="button" class="btn btn-lg btn-outline-success payment-option" data-mode="especes">
-                        💵 Espèces
+            <div class="modal-body p-3">
+                <p class="small mb-3 text-muted">Sélectionnez le mode de paiement :</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-success payment-option" data-mode="especes">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cash me-2" viewBox="0 0 16 16">
+                            <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+                            <path d="M0 4a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V4zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V6a2 2 0 0 1-2-2H3z"/>
+                        </svg>
+                        Espèces
                     </button>
-                    <button type="button" class="btn btn-lg btn-outline-primary payment-option" data-mode="carte">
-                        💳 Carte Bancaire
+                    <button type="button" class="btn btn-outline-primary payment-option" data-mode="carte">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-credit-card me-2" viewBox="0 0 16 16">
+                            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1H2zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7z"/>
+                            <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1z"/>
+                        </svg>
+                        Carte Bancaire
                     </button>
-                    <button type="button" class="btn btn-lg btn-outline-info payment-option" data-mode="mobile_money">
-                        📱 Mobile Money
+                    <button type="button" class="btn btn-outline-info payment-option" data-mode="mobile_money">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-phone me-2" viewBox="0 0 16 16">
+                            <path d="M11 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6zM5 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H5z"/>
+                            <path d="M8 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                        </svg>
+                        Mobile Money
                     </button>
-                    <button type="button" class="btn btn-lg btn-outline-warning payment-option" data-mode="cheque">
-                        📋 Chèque
+                    <button type="button" class="btn btn-outline-warning payment-option" data-mode="cheque">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-text me-2" viewBox="0 0 16 16">
+                            <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z"/>
+                            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+                        </svg>
+                        Chèque
                     </button>
-                    <button type="button" class="btn btn-lg btn-outline-secondary payment-option" data-mode="credit">
-                        🔄 Crédit
+                    <button type="button" class="btn btn-outline-secondary payment-option" data-mode="credit">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-repeat me-2" viewBox="0 0 16 16">
+                            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+                            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+                        </svg>
+                        Crédit
                     </button>
                 </div>
             </div>
@@ -548,21 +568,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fonctions globales pour les événements inline
     window.removeFromCart = function(index) {
-        if (typeof showConfirmModal === 'function') {
-            showConfirmModal({
-                title: 'Confirmer la suppression',
-                message: `Retirer ${cart[index].nom} du panier ?`,
-                onConfirm: () => {
-                    cart.splice(index, 1);
-                    updateCart();
-                }
-            });
-        } else {
-            if (confirm(`Retirer ${cart[index].nom} du panier ?`)) {
+        showConfirmModal({
+            title: 'Confirmer la suppression',
+            message: `Retirer ${cart[index].nom} du panier ?`,
+            type: 'warning'
+        }).then(confirmed => {
+            if (confirmed) {
                 cart.splice(index, 1);
                 updateCart();
             }
-        }
+        });
     };
     
     window.updatePrice = function(index, value) {
@@ -594,21 +609,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function clearCart() {
         if (cart.length === 0) return;
-        if (typeof showConfirmModal === 'function') {
-            showConfirmModal({
-                title: 'Vider le panier',
-                message: 'Êtes-vous sûr de vouloir vider le panier ?',
-                onConfirm: () => {
-                    cart = [];
-                    updateCart();
-                }
-            });
-        } else {
-            if (confirm('Vider le panier ?')) {
+        
+        showConfirmModal({
+            title: 'Vider le panier',
+            message: 'Êtes-vous sûr de vouloir vider le panier ?',
+            type: 'warning'
+        }).then(confirmed => {
+            if (confirmed) {
                 cart = [];
                 updateCart();
             }
-        }
+        });
     }
     
     function processSale() {
@@ -619,40 +630,42 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const total = cart.reduce((sum, item) => sum + (item.prix * item.quantite), 0);
-        const tva = total * TVA_RATE;
-        const totalTTC = total + tva;
+        // Les prix saisis sont TTC (incluent déjà la TVA de 16%)
+        const totalTTC = cart.reduce((sum, item) => sum + (item.prix * item.quantite), 0);
         
-        console.log('💰 Montants calculés:', {total, tva, totalTTC});
+        console.log('💰 Montant total TTC:', totalTTC);
         
-        const confirmMessage = `Confirmer la vente pour ${totalTTC.toLocaleString('fr-FR', {minimumFractionDigits: 2})} <?php echo $devise; ?> ?`;
+        const totalTTCFormatted = totalTTC.toLocaleString('fr-FR', {minimumFractionDigits: 2});
         
-        // UTILISER CONFIRM NATIF POUR TEST
-        const userConfirmed = confirm(confirmMessage);
-        console.log('👤 Utilisateur a confirmé:', userConfirmed);
-        
-        if (!userConfirmed) {
-            console.log('❌ Vente annulée par utilisateur');
-            return;
-        }
-        
-        // Afficher le modal de mode de paiement
-        console.log('💳 Affichage modal mode de paiement...');
-        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        
-        // Écouter la sélection du mode de paiement
-        document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.onclick = function() {
-                const mode = this.dataset.mode;
-                console.log('💳 Mode sélectionné:', mode);
-                paymentModal.hide();
-                
-                // Procéder à la vente avec le mode de paiement
-                processSaleWithPayment(mode);
-            };
+        showConfirmModal({
+            title: 'Confirmer la vente',
+            message: `Montant total : <strong>${totalTTCFormatted} <?php echo $devise; ?></strong>`,
+            type: 'warning'
+        }).then(confirmed => {
+            if (!confirmed) {
+                console.log('❌ Vente annulée par l\'utilisateur');
+                return;
+            }
+            
+            console.log('👤 Utilisateur a confirmé');
+            // Afficher le modal de mode de paiement
+            console.log('💳 Affichage modal mode de paiement...');
+            const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            
+            // Écouter la sélection du mode de paiement
+            document.querySelectorAll('.payment-option').forEach(btn => {
+                btn.onclick = function() {
+                    const mode = this.dataset.mode;
+                    console.log('💳 Mode sélectionné:', mode);
+                    paymentModal.hide();
+                    
+                    // Procéder à la vente avec le mode de paiement
+                    processSaleWithPayment(mode);
+                };
+            });
+            
+            paymentModal.show();
         });
-        
-        paymentModal.show();
     }
     
     function processSaleWithPayment(modePaiement) {
@@ -706,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Ouvrir la facture
                     if (data.id_vente) {
                         console.log('📄 Ouverture facture ID:', data.id_vente);
-                        window.open('facture_impression_v2.php?id=' + data.id_vente, '_blank');
+                        window.open('facture_impression.php?id=' + data.id_vente, '_blank');
                     }
                     
                     // Recharger la page après 2 secondes pour mettre à jour les stocks

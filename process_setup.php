@@ -129,8 +129,9 @@ if (!empty($_POST['logo_cropped'])) {
             if ($base64_string === false) {
                 $errors[] = 'Erreur lors du décodage du logo';
             } else {
-                // Générer un nom unique pour le fichier
-                $logo_filename = 'logo_' . uniqid() . '.' . $type;
+                // Générer un nom standardisé pour le fichier
+                // Nom: logo_boutique.{type}
+                $logo_filename = 'logo_boutique.' . $type;
                 $logo_path = LOGO_PATH . $logo_filename;
                 
                 // Sauvegarder le fichier

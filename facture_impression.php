@@ -14,10 +14,10 @@ $vente = db_fetch_one("
         c.nom_client,
         c.telephone as client_tel,
         c.adresse as client_adresse,
-        u.nom_utilisateur
+        u.nom_complet as nom_vendeur
     FROM ventes v
     LEFT JOIN clients c ON v.id_client = c.id_client
-    INNER JOIN utilisateurs u ON v.id_utilisateur = u.id_utilisateur
+    INNER JOIN utilisateurs u ON v.id_vendeur = u.id_utilisateur
     WHERE v.id_vente = ?
 ", [$id_vente]);
 
@@ -30,7 +30,7 @@ $details = db_fetch_all("
     SELECT 
         vd.*,
         p.nom_produit
-    FROM ventes_details vd
+    FROM details_vente vd
     INNER JOIN produits p ON vd.id_produit = p.id_produit
     WHERE vd.id_vente = ?
     ORDER BY vd.id_detail
@@ -162,7 +162,7 @@ $page_title = 'Facture ' . $vente['numero_facture'];
                     <div class="info-block">
                         <h5 class="text-uppercase text-muted mb-2">Détails</h5>
                         <strong>Date:</strong> <?php echo date('d/m/Y à H:i', strtotime($vente['date_vente'])); ?><br>
-                        <strong>Vendeur:</strong> <?php echo htmlspecialchars($vente['nom_utilisateur']); ?><br>
+                        <strong>Vendeur:</strong> <?php echo htmlspecialchars($vente['nom_vendeur']); ?><br>
                         <strong>Mode:</strong> <?php echo ucfirst($vente['mode_paiement']); ?>
                     </div>
                 </div>

@@ -124,13 +124,12 @@ $products_alert_count = get_products_alert_count();
 
 /**
  * Vérifie si l'utilisateur actuel est administrateur
- * Si non, redirige avec message d'erreur
+ * Si non, redirige vers page d'accès refusé
  */
 function require_admin() {
     global $is_admin;
     if (!$is_admin) {
-        set_flash_message('Accès refusé. Cette fonction est réservée aux administrateurs.', 'error');
-        redirect(BASE_URL . 'accueil.php');
+        redirect(BASE_URL . 'acces_refusé.php');
         exit;
     }
 }
@@ -142,8 +141,7 @@ function require_admin() {
 function require_niveau($niveau_requis) {
     global $user_niveau;
     if ($user_niveau > $niveau_requis) {
-        set_flash_message('Accès refusé. Permissions insuffisantes.', 'error');
-        redirect(BASE_URL . 'accueil.php');
+        redirect(BASE_URL . 'acces_refusé.php');
         exit;
     }
 }
