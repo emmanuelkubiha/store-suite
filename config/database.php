@@ -337,6 +337,19 @@ try {
         );
     }
     
+    /**
+     * Vérifie si une transaction est en cours
+     * @return bool
+     */
+    function db_in_transaction() {
+        global $pdo;
+        return $pdo->inTransaction();
+    }
+    
+    // NOTE: Les fonctions utilitaires (is_logged_in, get_user_id, e, format_montant, format_date,
+    // generate_csrf_token, verify_csrf_token, set_flash_message, get_flash_message, redirect, die_error)
+    // sont définies dans config/config.php pour éviter les redéclarations.
+    
 } catch (PDOException $e) {
     // ========================================================================
     // GESTION DES ERREURS DE CONNEXION
