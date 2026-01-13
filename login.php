@@ -167,9 +167,240 @@ $flash = get_flash_message();
         .btn:hover {
             opacity: 0.9;
         }
+        
+        /* Loader de démarrage complet */
+        #systemLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, <?php echo $config['couleur_primaire']; ?>, <?php echo $config['couleur_secondaire']; ?>);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            color: white;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        #systemLoader.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .system-loader-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+        }
+        
+        .system-logo {
+            margin-bottom: 40px;
+            animation: logoEntrance 0.8s ease-out;
+        }
+        
+        .system-logo img {
+            max-width: 100px;
+            max-height: 100px;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+        }
+        
+        .system-logo svg {
+            width: 80px;
+            height: 80px;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+        }
+        
+        .system-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin-top: 20px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+        
+        .system-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-top: 10px;
+            letter-spacing: 2px;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            margin: 40px auto;
+            position: relative;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+        
+        .spinner-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spinRotate 1s linear infinite;
+        }
+        
+        .spinner-circle:nth-child(2) {
+            width: 75%;
+            height: 75%;
+            top: 12.5%;
+            left: 12.5%;
+            border-top-color: rgba(255, 255, 255, 0.8);
+            animation-duration: 1.3s;
+            animation-direction: reverse;
+        }
+        
+        @keyframes spinRotate {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-status {
+            margin-top: 30px;
+            min-height: 60px;
+        }
+        
+        .loading-message {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            animation: messagePulse 0.5s ease-in-out;
+        }
+        
+        .loading-step {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            animation: messagePulse 0.5s ease-in-out;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 25px;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.5s ease-out;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .loading-percentage {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            opacity: 0.7;
+            font-weight: 600;
+        }
+        
+        .copyright-text {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0;
+            animation: copyrightFade 3s ease-in-out 1s infinite;
+        }
+        
+        .copyright-text .developer {
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        @keyframes copyrightFade {
+            0%, 100% { opacity: 0; transform: translateY(10px); }
+            50% { opacity: 0.8; transform: translateY(0); }
+        }
+        
+        @keyframes logoEntrance {
+            from {
+                opacity: 0;
+                transform: scale(0.5) rotate(-10deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes messagePulse {
+            0% { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="antialiased border-top-wide border-primary d-flex flex-column">
+    <!-- Loader de démarrage -->
+    <div id="systemLoader">
+        <div class="system-loader-content">
+            <!-- Logo -->
+            <div class="system-logo">
+                <?php if (!empty($config['logo']) && file_exists(LOGO_PATH . $config['logo'])): ?>
+                    <img src="<?php echo BASE_URL . 'uploads/logos/' . $config['logo']; ?>" alt="Logo">
+                <?php else: ?>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304z" />
+                        <path d="M9 11v-5a3 3 0 0 1 6 0v5" />
+                    </svg>
+                <?php endif; ?>
+            </div>
+            
+            <!-- Nom du système -->
+            <div class="system-name"><?php echo strtoupper(e($config['nom_boutique'])); ?></div>
+            <div class="system-subtitle">SYSTÈME DE GESTION</div>
+            
+            <!-- Spinner -->
+            <div class="loading-spinner">
+                <div class="spinner-circle"></div>
+                <div class="spinner-circle"></div>
+            </div>
+            
+            <!-- Status de chargement -->
+            <div class="loading-status">
+                <div class="loading-message" id="loadingMessage">Chargement de l'application...</div>
+                <div class="loading-step" id="loadingStep"></div>
+            </div>
+            
+            <!-- Barre de progression -->
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="loading-percentage" id="loadingPercentage">0%</div>
+        </div>
+        
+        <!-- Copyright -->
+        <div class="copyright-text">
+            Développé par <span class="developer">Emmanuel Kubiha</span>
+        </div>
+    </div>
+    
     <div class="page page-center">
         <div class="container-tight py-4">
             <div class="text-center mb-4">
@@ -261,5 +492,44 @@ $flash = get_flash_message();
     
     <!-- Libs JS -->
     <script src="./dist/js/tabler.min.js"></script>
+    <script>
+        // Étapes de chargement pour login
+        const loadingSteps = [
+            { message: 'Chargement de l\'application...', step: 'Initialisation', progress: 25, duration: 600 },
+            { message: 'Préparation de l\'interface...', step: 'Configuration', progress: 60, duration: 650 },
+            { message: 'Prêt à se connecter', step: 'Système prêt', progress: 100, duration: 700 }
+        ];
+        
+        let currentStep = 0;
+        
+        function updateLoadingStep() {
+            if (currentStep >= loadingSteps.length) {
+                setTimeout(function() {
+                    document.getElementById('systemLoader').classList.add('hidden');
+                }, 600);
+                return;
+            }
+            
+            const step = loadingSteps[currentStep];
+            const messageEl = document.getElementById('loadingMessage');
+            const stepEl = document.getElementById('loadingStep');
+            const progressBar = document.getElementById('progressBar');
+            const percentageEl = document.getElementById('loadingPercentage');
+            
+            if (messageEl && stepEl && progressBar && percentageEl) {
+                messageEl.textContent = step.message;
+                stepEl.textContent = step.step;
+                progressBar.style.width = step.progress + '%';
+                percentageEl.textContent = step.progress + '%';
+            }
+            
+            currentStep++;
+            setTimeout(updateLoadingStep, step.duration);
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(updateLoadingStep, 300);
+        });
+    </script>
 </body>
 </html>
