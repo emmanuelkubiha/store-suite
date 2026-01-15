@@ -2,7 +2,7 @@
 require_once('protection_pages.php');
 $page_title = 'Listes';
 $page = isset($_GET['page']) ? $_GET['page'] : 'produits';
-$available_pages = ['produits', 'clients', 'categories', 'mouvements', 'ventes'];
+$available_pages = ['produits', 'clients', 'categories', 'mouvements', 'ventes', 'fournisseurs', 'depots'];
 if (!in_array($page, $available_pages)) $page = 'produits';
 
 switch($page) {
@@ -11,6 +11,8 @@ switch($page) {
     case 'categories': $page_title = 'Gestion des Catégories'; break;
     case 'mouvements': $page_title = 'Mouvements de Stock'; break;
     case 'ventes': $page_title = 'Historique des Ventes'; break;
+    case 'fournisseurs': $page_title = 'Gestion des Fournisseurs'; break;
+    case 'depots': $page_title = 'Gestion des Dépôts'; break;
 }
 
 $is_vendeur = ($user_niveau == NIVEAU_VENDEUR);
@@ -19,7 +21,9 @@ $page_hints = [
     'clients' => 'Astuce : complétez téléphone et email pour mieux relancer vos clients.',
     'categories' => 'Astuce : des catégories claires accélèrent la recherche en caisse.',
     'mouvements' => 'Astuce : notez un motif précis à chaque ajustement de stock.',
-    'ventes' => 'Astuce : contrôlez montants et clients avant d\'imprimer les factures.'
+    'ventes' => 'Astuce : contrôlez montants et clients avant d\'imprimer les factures.',
+    'fournisseurs' => 'Astuce : gardez à jour les coordonnées de vos fournisseurs pour faciliter les commandes.',
+    'depots' => 'Astuce : organisez vos emplacements de stockage pour optimiser la gestion du stock.'
 ];
 $page_hint = $page_hints[$page];
 
@@ -149,6 +153,8 @@ require_once('header.php');
                 <li class="nav-item"><a href="?page=produits" class="nav-link <?php echo $page === 'produits' ? 'active' : ''; ?>">Produits</a></li>
                 <li class="nav-item"><a href="?page=clients" class="nav-link <?php echo $page === 'clients' ? 'active' : ''; ?>">Clients</a></li>
                 <li class="nav-item"><a href="?page=categories" class="nav-link <?php echo $page === 'categories' ? 'active' : ''; ?>">Catégories</a></li>
+                <li class="nav-item"><a href="?page=fournisseurs" class="nav-link <?php echo $page === 'fournisseurs' ? 'active' : ''; ?>">Fournisseurs</a></li>
+                <li class="nav-item"><a href="?page=depots" class="nav-link <?php echo $page === 'depots' ? 'active' : ''; ?>">Dépôts</a></li>
                 <li class="nav-item"><a href="?page=mouvements" class="nav-link <?php echo $page === 'mouvements' ? 'active' : ''; ?>">Mouvements</a></li>
                 <li class="nav-item"><a href="?page=ventes" class="nav-link <?php echo $page === 'ventes' ? 'active' : ''; ?>">Ventes</a></li>
             </ul>
@@ -258,6 +264,18 @@ require_once('header.php');
                             Nouveau produit
                         </button>
                         <?php endif; ?>
+                    </div>
+                </div>
+                <div class="card-body border-bottom pb-2">
+                    <div class="input-icon">
+                        <span class="input-icon-addon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <circle cx="10" cy="10" r="7" />
+                                <line x1="21" y1="21" x2="15" y2="15" />
+                            </svg>
+                        </span>
+                        <input type="text" id="searchProduits" class="form-control" placeholder="Rechercher un produit (nom, code, catégorie)..." />
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -397,8 +415,28 @@ require_once('header.php');
                                         </select>
                                     </div>
                                     <div class="col-md-6 mb-3">
+                                        <label class="form-label" data-bs-toggle="tooltip" title="Qui fournit ce produit">Fournisseur *</label>
+                                        <select class="form-select" id="product_fournisseur" name="product_fournisseur" required>
+                                            <option value="">Sélectionner...</option>
+                                            <?php $fournisseurs_list = db_fetch_all("SELECT * FROM fournisseurs WHERE est_actif = 1 ORDER BY nom_fournisseur"); ?>
+                                            <?php foreach($fournisseurs_list as $f): ?>
+                                                <option value="<?php echo $f['id_fournisseur']; ?>"><?php echo e($f['nom_fournisseur']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label" data-bs-toggle="tooltip" title="Unité de mesure (ex: pièce, kg, litre, boîte, carton)">Unité *</label>
                                         <input type="text" class="form-control" id="product_unit" name="product_unit" value="pièce" required placeholder="Ex: pièce, kg, litre...">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label" data-bs-toggle="tooltip" title="Où ranger ce produit initialement">Dépôt initial *</label>
+                                        <select class="form-select" id="product_depot" name="product_depot" required>
+                                            <option value="">Sélectionner...</option>
+                                            <?php $depots_list = db_fetch_all("SELECT * FROM depots WHERE est_actif = 1 ORDER BY est_principal DESC, nom_depot"); ?>
+                                            <?php foreach($depots_list as $d): ?>
+                                                <option value="<?php echo $d['id_depot']; ?>"><?php echo e($d['nom_depot']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     <?php if ($is_vendeur): ?>
                                         <input type="hidden" id="product_purchase_price" name="product_purchase_price" value="0">
@@ -568,6 +606,18 @@ require_once('header.php');
                         </svg>
                         Nouveau client
                     </button>
+                </div>
+                <div class="card-body border-bottom pb-2">
+                    <div class="input-icon">
+                        <span class="input-icon-addon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <circle cx="10" cy="10" r="7" />
+                                <line x1="21" y1="21" x2="15" y2="15" />
+                            </svg>
+                        </span>
+                        <input type="text" id="searchClients" class="form-control" placeholder="Rechercher un client (nom, téléphone, email)..." />
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -927,6 +977,18 @@ require_once('header.php');
             <div class="card list-card">
                 <div class="card-header">
                     <h5 class="mb-0">Historique des Mouvements (200 derniers)</h5>
+                </div>
+                <div class="card-body border-bottom pb-2">
+                    <div class="input-icon">
+                        <span class="input-icon-addon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <circle cx="10" cy="10" r="7" />
+                                <line x1="21" y1="21" x2="15" y2="15" />
+                            </svg>
+                        </span>
+                        <input type="text" id="searchMouvements" class="form-control" placeholder="Rechercher un mouvement (produit, type, motif, utilisateur)..." />
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -1576,6 +1638,327 @@ require_once('header.php');
             
             <?php
             break;
+            
+        case 'fournisseurs':
+            // Récupérer les fournisseurs
+            $fournisseurs = db_fetch_all("
+                SELECT 
+                    f.*,
+                    COUNT(DISTINCT p.id_produit) as nb_produits
+                FROM fournisseurs f
+                LEFT JOIN produits p ON f.id_fournisseur = p.id_fournisseur_principal
+                WHERE f.est_actif = 1
+                GROUP BY f.id_fournisseur
+                ORDER BY f.nom_fournisseur ASC
+            ");
+            ?>
+            
+            <div class="card list-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📦 Liste des Fournisseurs</h5>
+                    <?php if ($is_admin): ?>
+                    <button type="button" class="btn btn-primary" onclick="ouvrirModalFournisseur()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nouveau Fournisseur
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <div class="card-body border-bottom pb-2">
+                    <div class="input-icon">
+                        <span class="input-icon-addon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <circle cx="10" cy="10" r="7" />
+                                <line x1="21" y1="21" x2="15" y2="15" />
+                            </svg>
+                        </span>
+                        <input type="text" id="searchFournisseurs" class="form-control" placeholder="Rechercher un fournisseur (nom, contact, téléphone, email)..." />
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover card-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom du fournisseur</th>
+                                    <th>Contact</th>
+                                    <th>Téléphone</th>
+                                    <th>Email</th>
+                                    <th>Adresse</th>
+                                    <th class="text-center">Produits liés</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($fournisseurs)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        Aucun fournisseur enregistré
+                                    </td>
+                                </tr>
+                                <?php else: ?>
+                                <?php foreach ($fournisseurs as $f): ?>
+                                <tr>
+                                    <td><strong><?php echo e($f['nom_fournisseur']); ?></strong></td>
+                                    <td><?php echo e($f['contact'] ?: '-'); ?></td>
+                                    <td><?php echo e($f['telephone'] ?: '-'); ?></td>
+                                    <td><?php echo e($f['email'] ?: '-'); ?></td>
+                                    <td><?php echo e($f['adresse'] ?: '-'); ?></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary"><?php echo $f['nb_produits']; ?></span>
+                                    </td>
+                                    <td class="text-end">
+                                        <?php if ($is_admin): ?>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-warning" onclick='modifierFournisseur(<?php echo json_encode($f); ?>)' title="Modifier">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                                    <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                                    <path d="M16 5l3 3" />
+                                                </svg>
+                                            </button>
+                                            <button type="button" class="btn btn-danger" onclick="supprimerFournisseur(<?php echo $f['id_fournisseur']; ?>, '<?php echo e($f['nom_fournisseur']); ?>', <?php echo $f['nb_produits']; ?>)" title="Supprimer">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <line x1="4" y1="7" x2="20" y2="7" />
+                                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Fournisseur -->
+            <div class="modal fade" id="modalFournisseur" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalFournisseurTitle">Nouveau Fournisseur</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="formFournisseur">
+                            <div class="modal-body">
+                                <input type="hidden" id="fournisseur_id" name="id_fournisseur">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label required">Nom du fournisseur</label>
+                                    <input type="text" class="form-control" id="fournisseur_nom" name="nom_fournisseur" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Personne de contact</label>
+                                    <input type="text" class="form-control" id="fournisseur_contact" name="contact">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Téléphone</label>
+                                    <input type="tel" class="form-control" id="fournisseur_telephone" name="telephone">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="fournisseur_email" name="email">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Adresse</label>
+                                    <textarea class="form-control" id="fournisseur_adresse" name="adresse" rows="2"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <?php
+            break;
+            
+        case 'depots':
+            // Récupérer les dépôts
+            $depots = db_fetch_all("
+                SELECT 
+                    d.*,
+                    COUNT(DISTINCT spd.id_produit) as nb_produits,
+                    COALESCE(SUM(spd.quantite), 0) as stock_total
+                FROM depots d
+                LEFT JOIN stock_par_depot spd ON d.id_depot = spd.id_depot
+                WHERE d.est_actif = 1
+                GROUP BY d.id_depot
+                ORDER BY d.est_principal DESC, d.nom_depot ASC
+            ");
+            ?>
+            
+            <div class="card list-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">🏪 Liste des Dépôts</h5>
+                    <?php if ($is_admin): ?>
+                    <button type="button" class="btn btn-primary" onclick="ouvrirModalDepot()">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nouveau Dépôt
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover card-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom du dépôt</th>
+                                    <th>Description</th>
+                                    <th>Adresse</th>
+                                    <th class="text-center">Type</th>
+                                    <th class="text-center">Produits</th>
+                                    <th class="text-center">Stock total</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($depots)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        Aucun dépôt enregistré
+                                    </td>
+                                </tr>
+                                <?php else: ?>
+                                <?php foreach ($depots as $d): ?>
+                                <tr>
+                                    <td>
+                                        <strong><?php echo e($d['nom_depot']); ?></strong>
+                                        <?php if ($d['est_principal']): ?>
+                                        <span class="badge bg-success ms-2">Principal</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo e($d['description'] ?: '-'); ?></td>
+                                    <td><?php echo e($d['adresse'] ?: '-'); ?></td>
+                                    <td class="text-center">
+                                        <?php if ($d['est_principal']): ?>
+                                        <span class="badge bg-success">Magasin principal</span>
+                                        <?php else: ?>
+                                        <span class="badge bg-info">Dépôt secondaire</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary"><?php echo $d['nb_produits']; ?></span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-dark"><?php echo number_format($d['stock_total']); ?></span>
+                                    </td>
+                                    <td class="text-end">
+                                        <?php if ($is_admin): ?>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-warning" onclick='modifierDepot(<?php echo json_encode($d); ?>)' title="Modifier">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                                    <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                                    <path d="M16 5l3 3" />
+                                                </svg>
+                                            </button>
+                                            <?php if (!$d['est_principal']): ?>
+                                            <button type="button" class="btn btn-danger" onclick="supprimerDepot(<?php echo $d['id_depot']; ?>, '<?php echo e($d['nom_depot']); ?>', <?php echo $d['stock_total']; ?>)" title="Supprimer">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <line x1="4" y1="7" x2="20" y2="7" />
+                                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                                                </svg>
+                                            </button>
+                                            <?php else: ?>
+                                            <button type="button" class="btn btn-secondary" disabled title="Le dépôt principal ne peut pas être supprimé">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                                                    <circle cx="12" cy="16" r="1" />
+                                                    <path d="M8 11v-4a4 4 0 0 1 8 0v4" />
+                                                </svg>
+                                            </button>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Dépôt -->
+            <div class="modal fade" id="modalDepot" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalDepotTitle">Nouveau Dépôt</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form id="formDepot">
+                            <div class="modal-body">
+                                <input type="hidden" id="depot_id" name="id_depot">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label required">Nom du dépôt</label>
+                                    <input type="text" class="form-control" id="depot_nom" name="nom_depot" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" id="depot_description" name="description" rows="2"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Adresse</label>
+                                    <textarea class="form-control" id="depot_adresse" name="adresse" rows="2"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="depot_principal" name="est_principal" value="1">
+                                        <label class="form-check-label" for="depot_principal">
+                                            Définir comme dépôt principal
+                                        </label>
+                                        <small class="form-hint">Un seul dépôt peut être principal. Ce sera votre magasin/point de vente principal.</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <?php
+            break;
     }
     ?>
 </div>
@@ -1701,6 +2084,7 @@ function editProduct(product) {
     document.getElementById('product_stock').value = product.quantite_stock;
     document.getElementById('product_min_stock').value = product.stock_minimum;
     document.getElementById('product_description').value = product.description || '';
+    document.getElementById('product_fournisseur').value = product.id_fournisseur || '0';
     
     const modal = new bootstrap.Modal(document.getElementById('modalProduit'));
     modal.show();
@@ -1709,13 +2093,8 @@ function editProduct(product) {
 // Ajuster stock
 function adjustStock(id, name) {
     console.log('adjustStock() appelé', id, name);
-    document.getElementById('stock_product_id').value = id;
-    document.getElementById('stock_product_name').textContent = name;
-    document.getElementById('stockForm').reset();
-    document.getElementById('stock_product_id').value = id;
-    
-    const modal = new bootstrap.Modal(document.getElementById('modalAjustStock'));
-    modal.show();
+    // Rediriger vers mouvements_stock.php avec l'ID du produit
+    window.location.href = 'mouvements_stock.php?product_id=' + encodeURIComponent(id) + '&open_modal=1';
 }
 
 // Supprimer produit
@@ -1768,7 +2147,13 @@ function handleProductSubmit(e) {
     
     const formData = new FormData(this);
     const productId = document.getElementById('product_id').value;
-    formData.append('action', productId ? 'update' : 'create');
+    const action = productId ? 'update_product' : 'add_product';
+    formData.append('action', action);
+    
+    // Pour update_product, il faut ajouter product_fournisseur
+    if (productId) {
+        formData.append('id_produit', productId);
+    }
     
     fetch('ajax/produits.php', {
         method: 'POST',
@@ -2387,6 +2772,276 @@ function deleteVente(id) {
             });
         } else {
             alert('Erreur de connexion: ' + e.message);
+        }
+    });
+}
+
+// ==================== FOURNISSEURS ====================
+function ouvrirModalFournisseur() {
+    document.getElementById('formFournisseur').reset();
+    document.getElementById('fournisseur_id').value = '';
+    document.getElementById('modalFournisseurTitle').textContent = 'Nouveau Fournisseur';
+    const modal = new bootstrap.Modal(document.getElementById('modalFournisseur'));
+    modal.show();
+}
+
+function modifierFournisseur(fournisseur) {
+    document.getElementById('fournisseur_id').value = fournisseur.id_fournisseur;
+    document.getElementById('fournisseur_nom').value = fournisseur.nom_fournisseur;
+    document.getElementById('fournisseur_contact').value = fournisseur.contact || '';
+    document.getElementById('fournisseur_telephone').value = fournisseur.telephone || '';
+    document.getElementById('fournisseur_email').value = fournisseur.email || '';
+    document.getElementById('fournisseur_adresse').value = fournisseur.adresse || '';
+    document.getElementById('modalFournisseurTitle').textContent = 'Modifier Fournisseur';
+    const modal = new bootstrap.Modal(document.getElementById('modalFournisseur'));
+    modal.show();
+}
+
+function supprimerFournisseur(id, nom, nbProduits) {
+    if (nbProduits > 0) {
+        showAlertModal({
+            title: 'Suppression impossible',
+            message: `Ce fournisseur est lié à ${nbProduits} produit(s). Veuillez d'abord retirer l'association avec ces produits.`,
+            type: 'warning'
+        });
+        return;
+    }
+    
+    showConfirmModal({
+        title: 'Confirmer la suppression',
+        message: `Êtes-vous sûr de vouloir supprimer le fournisseur "${nom}" ?`,
+        onConfirm: () => {
+            const formData = new URLSearchParams({
+                action: 'delete',
+                id_fournisseur: id
+            });
+            
+            fetch('ajax/fournisseurs.php', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlertModal({
+                            title: 'Succès',
+                            message: data.message,
+                            type: 'success'
+                        });
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showAlertModal({
+                            title: 'Erreur',
+                            message: data.message,
+                            type: 'error'
+                        });
+                    }
+                });
+        }
+    });
+}
+
+document.getElementById('formFournisseur')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('fournisseur_id').value;
+    const formData = new URLSearchParams({
+        action: id ? 'update' : 'create',
+        id_fournisseur: id,
+        nom_fournisseur: document.getElementById('fournisseur_nom').value,
+        contact: document.getElementById('fournisseur_contact').value,
+        telephone: document.getElementById('fournisseur_telephone').value,
+        email: document.getElementById('fournisseur_email').value,
+        adresse: document.getElementById('fournisseur_adresse').value
+    });
+    
+    fetch('ajax/fournisseurs.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showAlertModal({
+                    title: 'Succès',
+                    message: data.message,
+                    type: 'success'
+                });
+                bootstrap.Modal.getInstance(document.getElementById('modalFournisseur')).hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlertModal({
+                    title: 'Erreur',
+                    message: data.message,
+                    type: 'error'
+                });
+            }
+        });
+});
+
+// ==================== DEPOTS ====================
+function ouvrirModalDepot() {
+    document.getElementById('formDepot').reset();
+    document.getElementById('depot_id').value = '';
+    document.getElementById('modalDepotTitle').textContent = 'Nouveau Dépôt';
+    const modal = new bootstrap.Modal(document.getElementById('modalDepot'));
+    modal.show();
+}
+
+function modifierDepot(depot) {
+    document.getElementById('depot_id').value = depot.id_depot;
+    document.getElementById('depot_nom').value = depot.nom_depot;
+    document.getElementById('depot_description').value = depot.description || '';
+    document.getElementById('depot_adresse').value = depot.adresse || '';
+    document.getElementById('depot_principal').checked = depot.est_principal == 1;
+    document.getElementById('modalDepotTitle').textContent = 'Modifier Dépôt';
+    const modal = new bootstrap.Modal(document.getElementById('modalDepot'));
+    modal.show();
+}
+
+function supprimerDepot(id, nom, stockTotal) {
+    if (stockTotal > 0) {
+        showAlertModal({
+            title: 'Suppression impossible',
+            message: `Ce dépôt contient ${stockTotal} unités en stock. Veuillez d'abord vider le stock ou le transférer vers un autre dépôt.`,
+            type: 'warning'
+        });
+        return;
+    }
+    
+    showConfirmModal({
+        title: 'Confirmer la suppression',
+        message: `Êtes-vous sûr de vouloir supprimer le dépôt "${nom}" ?`,
+        onConfirm: () => {
+            const formData = new URLSearchParams({
+                action: 'delete',
+                id_depot: id
+            });
+            
+            fetch('ajax/depots.php', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlertModal({
+                            title: 'Succès',
+                            message: data.message,
+                            type: 'success'
+                        });
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showAlertModal({
+                            title: 'Erreur',
+                            message: data.message,
+                            type: 'error'
+                        });
+                    }
+                });
+        }
+    });
+}
+
+document.getElementById('formDepot')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('depot_id').value;
+    const formData = new URLSearchParams({
+        action: id ? 'update' : 'create',
+        id_depot: id,
+        nom_depot: document.getElementById('depot_nom').value,
+        description: document.getElementById('depot_description').value,
+        adresse: document.getElementById('depot_adresse').value,
+        est_principal: document.getElementById('depot_principal').checked ? '1' : '0'
+    });
+    
+    fetch('ajax/depots.php', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showAlertModal({
+                    title: 'Succès',
+                    message: data.message,
+                    type: 'success'
+                });
+                bootstrap.Modal.getInstance(document.getElementById('modalDepot')).hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlertModal({
+                    title: 'Erreur',
+                    message: data.message,
+                    type: 'error'
+                });
+            }
+        });
+});
+
+// Fonction de recherche en temps réel pour les produits
+const searchProduitsInput = document.getElementById('searchProduits');
+if (searchProduitsInput) {
+    searchProduitsInput.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const rows = document.querySelectorAll('table.card-table tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+}
+
+// Fonction de recherche en temps réel pour les clients
+const searchClientsInput = document.getElementById('searchClients');
+if (searchClientsInput) {
+    searchClientsInput.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const table = searchClientsInput.closest('.card-body') ? searchClientsInput.closest('.card').querySelector('table') : null;
+        if (table) {
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    });
+}
+
+// Fonction de recherche en temps réel pour les fournisseurs
+const searchFournisseursInput = document.getElementById('searchFournisseurs');
+if (searchFournisseursInput) {
+    searchFournisseursInput.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const table = searchFournisseursInput.closest('.card-body') ? searchFournisseursInput.closest('.card').querySelector('table') : null;
+        if (table) {
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    });
+}
+
+// Fonction de recherche en temps réel pour les mouvements
+const searchMouvementsInput = document.getElementById('searchMouvements');
+if (searchMouvementsInput) {
+    searchMouvementsInput.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const table = searchMouvementsInput.closest('.card-body') ? searchMouvementsInput.closest('.card').querySelector('table') : null;
+        if (table) {
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         }
     });
 }

@@ -181,16 +181,18 @@ if (!document.getElementById('modern-modal-styles')) {
  * @returns {Promise<boolean>} - true si confirmé, false si annulé
  */
 window.showConfirmModal = function(options = {}) {
-    return new Promise((resolve) => {
-        const {
-            title = 'Confirmation',
-            message = 'Êtes-vous sûr de vouloir continuer ?',
-            icon = 'warning',
-            confirmText = 'Confirmer',
-            cancelText = 'Annuler',
-            type = 'warning'
-        } = options;
+    const {
+        title = 'Confirmation',
+        message = 'Êtes-vous sûr de vouloir continuer ?',
+        icon = 'warning',
+        confirmText = 'Confirmer',
+        cancelText = 'Annuler',
+        type = 'warning',
+        onConfirm = null,
+        onCancel = null
+    } = options;
 
+    return new Promise((resolve) => {
         // Icônes selon le type
         const icons = {
             success: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>',
@@ -224,6 +226,7 @@ window.showConfirmModal = function(options = {}) {
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modalElement = document.getElementById(modalId);
+        
         // Nettoyer les backdrops Bootstrap pour éviter les conflits d'empilement
         try {
             document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
@@ -238,6 +241,14 @@ window.showConfirmModal = function(options = {}) {
         const handleResponse = (confirmed) => {
             modalElement.classList.remove('active');
             setTimeout(() => modalElement.remove(), 200);
+            
+            // Support pour les callbacks
+            if (confirmed && typeof onConfirm === 'function') {
+                onConfirm();
+            } else if (!confirmed && typeof onCancel === 'function') {
+                onCancel();
+            }
+            
             resolve(confirmed);
         };
 

@@ -12,13 +12,17 @@ $response = ['success' => false, 'message' => ''];
 try {
     switch ($action) {
         case 'add_product':
-            $nom = trim($_POST['nom_produit'] ?? '');
-            $id_categorie = $_POST['id_categorie'] ?? null;
-            $prix_achat = floatval($_POST['prix_achat'] ?? 0);
-            $prix_vente = floatval($_POST['prix_vente'] ?? 0);
-            $quantite_stock = intval($_POST['quantite_stock'] ?? 0);
-            $seuil_alerte = intval($_POST['seuil_alerte'] ?? 5);
-            $description = trim($_POST['description'] ?? '');
+            $nom = trim($_POST['product_name'] ?? $_POST['nom_produit'] ?? '');
+            $id_categorie = $_POST['product_category'] ?? $_POST['id_categorie'] ?? null;
+            $id_fournisseur = $_POST['product_fournisseur'] ?? null;
+            $id_depot = $_POST['product_depot'] ?? null;
+            $prix_achat = floatval($_POST['product_purchase_price'] ?? $_POST['prix_achat'] ?? 0);
+            $prix_vente = floatval($_POST['product_sale_price'] ?? $_POST['prix_vente'] ?? 0);
+            $quantite_stock = intval($_POST['product_stock'] ?? $_POST['quantite_stock'] ?? 0);
+            $seuil_alerte = intval($_POST['product_min_stock'] ?? $_POST['seuil_alerte'] ?? 5);
+            $description = trim($_POST['product_description'] ?? $_POST['description'] ?? '');
+            $code_barcode = trim($_POST['product_barcode'] ?? '');
+            $unite_mesure = trim($_POST['product_unit'] ?? 'pièce');
             
             if (empty($nom)) {
                 throw new Exception('Le nom du produit est obligatoire');
@@ -28,20 +32,44 @@ try {
                 throw new Exception('Le prix de vente doit être supérieur à 0');
             }
             
-            $sql = "INSERT INTO produits (nom_produit, id_categorie, prix_achat, prix_vente, quantite_stock, seuil_alerte, description, est_actif) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
-            db_execute($sql, [$nom, $id_categorie, $prix_achat, $prix_vente, $quantite_stock, $seuil_alerte, $description]);
-            
-            // Enregistrer le mouvement de stock initial si quantité > 0
-            if ($quantite_stock > 0) {
-                $id_produit = db_last_insert_id();
-                $sql_mvt = "INSERT INTO mouvements (id_produit, type_mouvement, quantite, id_utilisateur, motif, date_mouvement) 
-                            VALUES (?, 'entree', ?, ?, 'Stock initial', NOW())";
-                db_execute($sql_mvt, [$id_produit, $quantite_stock, $user_id]);
+            if (empty($id_fournisseur)) {
+                throw new Exception('Le fournisseur est obligatoire');
             }
             
-            $response['success'] = true;
-            $response['message'] = 'Produit ajouté avec succès';
+            if (empty($id_depot)) {
+                throw new Exception('Le dépôt initial est obligatoire');
+            }
+            
+            db_begin_transaction();
+            
+            try {
+                $sql = "INSERT INTO produits (nom_produit, id_categorie, id_fournisseur, prix_achat, prix_vente, quantite_stock, seuil_alerte, seuil_critique, description, code_produit, unite_mesure, est_actif) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+                db_execute($sql, [$nom, $id_categorie, $id_fournisseur, $prix_achat, $prix_vente, $quantite_stock, $seuil_alerte, intval($seuil_alerte/2), $description, $code_barcode, $unite_mesure]);
+                
+                $id_produit = $pdo->lastInsertId();
+                
+                // Créer l'entrée stock_par_depot
+                $sql_stock = "INSERT INTO stock_par_depot (id_produit, id_depot, quantite, seuil_alerte) 
+                              VALUES (?, ?, ?, ?)";
+                db_execute($sql_stock, [$id_produit, $id_depot, $quantite_stock, $seuil_alerte]);
+                
+                // Enregistrer le mouvement de stock initial si quantité > 0
+                if ($quantite_stock > 0) {
+                    $sql_mvt = "INSERT INTO mouvements_stock (id_produit, type_mouvement, quantite, quantite_avant, quantite_apres, id_depot_source, id_fournisseur, id_utilisateur, motif, date_mouvement) 
+                                VALUES (?, 'entree', ?, 0, ?, ?, ?, ?, 'Stock initial lors de la création du produit', NOW())";
+                    db_execute($sql_mvt, [$id_produit, $quantite_stock, $quantite_stock, $id_depot, $id_fournisseur, $user_id]);
+                }
+                
+                db_commit();
+                
+                $response['success'] = true;
+                $response['message'] = 'Produit ajouté avec succès';
+                $response['id_produit'] = $id_produit;
+            } catch (Exception $e) {
+                db_rollback();
+                throw $e;
+            }
             break;
             
         case 'update_product':
@@ -52,6 +80,7 @@ try {
             $prix_vente = floatval($_POST['prix_vente'] ?? 0);
             $seuil_alerte = intval($_POST['seuil_alerte'] ?? 5);
             $description = trim($_POST['description'] ?? '');
+            $id_fournisseur = $_POST['product_fournisseur'] ?? null;
             
             if (!$id_produit) {
                 throw new Exception('ID produit manquant');
@@ -61,9 +90,18 @@ try {
                 throw new Exception('Le nom du produit est obligatoire');
             }
             
-            $sql = "UPDATE produits SET nom_produit = ?, id_categorie = ?, prix_achat = ?, prix_vente = ?, 
-                    seuil_alerte = ?, description = ? WHERE id_produit = ?";
-            db_execute($sql, [$nom, $id_categorie, $prix_achat, $prix_vente, $seuil_alerte, $description, $id_produit]);
+            if ($id_fournisseur && !is_numeric($id_fournisseur)) {
+                throw new Exception('Fournisseur invalide');
+            }
+            
+            // NULL pour id_categorie si vide
+            $id_categorie = $id_categorie && $id_categorie !== '0' ? $id_categorie : null;
+            // NULL pour id_fournisseur si vide
+            $id_fournisseur = $id_fournisseur && $id_fournisseur !== '0' ? $id_fournisseur : null;
+            
+            $sql = "UPDATE produits SET nom_produit = ?, id_categorie = ?, id_fournisseur = ?, prix_achat = ?, 
+                    prix_vente = ?, seuil_alerte = ?, description = ? WHERE id_produit = ?";
+            db_execute($sql, [$nom, $id_categorie, $id_fournisseur, $prix_achat, $prix_vente, $seuil_alerte, $description, $id_produit]);
             
             $response['success'] = true;
             $response['message'] = 'Produit modifié avec succès';
@@ -76,20 +114,42 @@ try {
                 throw new Exception('ID produit manquant');
             }
             
-            // Vérifier si le produit a des ventes
-            $ventes = db_fetch_one("SELECT COUNT(*) as nb FROM ventes_details WHERE id_produit = ?", [$id_produit]);
+            // Vérifier le stock total dans tous les dépôts
+            $stock_total = db_fetch_one("
+                SELECT SUM(quantite) as total 
+                FROM stock_par_depot 
+                WHERE id_produit = ? AND quantite > 0
+            ", [$id_produit]);
             
-            if ($ventes['nb'] > 0) {
-                // Désactiver au lieu de supprimer
-                db_execute("UPDATE produits SET est_actif = 0 WHERE id_produit = ?", [$id_produit]);
-                $response['message'] = 'Produit désactivé (a des ventes associées)';
-            } else {
-                // Supprimer réellement
-                db_execute("DELETE FROM produits WHERE id_produit = ?", [$id_produit]);
-                $response['message'] = 'Produit supprimé avec succès';
+            $stock_disponible = $stock_total['total'] ?? 0;
+            
+            if ($stock_disponible > 0) {
+                throw new Exception('Impossible de supprimer un produit qui a du stock. Videz d\'abord tous les dépôts.');
             }
             
-            $response['success'] = true;
+            // Vérifier s'il y a des ventes associées
+            $ventes = db_fetch_one("SELECT COUNT(*) as nb FROM ventes_details WHERE id_produit = ?", [$id_produit]);
+            
+            db_begin_transaction();
+            
+            try {
+                if ($ventes['nb'] > 0) {
+                    // Désactiver au lieu de supprimer s'il y a des ventes
+                    db_execute("UPDATE produits SET est_actif = 0 WHERE id_produit = ?", [$id_produit]);
+                    $response['message'] = 'Produit désactivé (a des ventes historiques)';
+                } else {
+                    // Supprimer complètement
+                    db_execute("DELETE FROM stock_par_depot WHERE id_produit = ?", [$id_produit]);
+                    db_execute("DELETE FROM produits WHERE id_produit = ?", [$id_produit]);
+                    $response['message'] = 'Produit supprimé avec succès';
+                }
+                
+                db_commit();
+                $response['success'] = true;
+            } catch (Exception $e) {
+                db_rollback();
+                throw $e;
+            }
             break;
             
         case 'adjust_stock':

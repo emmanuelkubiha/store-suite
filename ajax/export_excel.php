@@ -20,7 +20,7 @@ $date_debut = $_GET['date_debut'] ?? date('Y-m-d');
 $date_fin = $_GET['date_fin'] ?? date('Y-m-d');
 
 // Vérifier que le type est valide
-$types_valides = ['produits', 'ventes', 'benefices', 'categories', 'stock'];
+$types_valides = ['produits', 'ventes', 'benefices', 'categories', 'stock', 'inventaire_depot', 'mouvements_stock', 'valeur_stock', 'alertes_stock'];
 if (empty($type) || !in_array($type, $types_valides)) {
     die('<html><body><h1>Erreur</h1><p>Type de rapport invalide ou non spécifié.</p><p>Types valides : ' . implode(', ', $types_valides) . '</p></body></html>');
 }

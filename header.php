@@ -179,7 +179,9 @@ mb_internal_encoding('UTF-8');
     </style>
 </head>
 <body>
+    <?php if (!isset($skip_page_loader) || !$skip_page_loader): ?>
     <?php include 'loading.php'; ?>
+    <?php endif; ?>
     
     <div class="page">
         <header class="navbar navbar-expand-md navbar-light d-print-none sticky-top bg-white border-bottom">
@@ -481,6 +483,21 @@ mb_internal_encoding('UTF-8');
                                 </a>
                             </li>
                             <?php endif; ?>
+                            
+                            <!-- Mouvements de stock (Visible pour Admin et Vendeur) -->
+                            <li class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'mouvements_stock.php') ? 'active' : ''; ?>">
+                                <a class="nav-link d-flex align-items-center px-3 py-2 rounded-2" href="mouvements_stock.php">
+                                    <span class="nav-link-icon d-inline-block me-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/>
+                                            <rect x="9" y="3" width="6" height="4" rx="2"/>
+                                            <path d="M9 14l2 2l4 -4"/>
+                                        </svg>
+                                    </span>
+                                    <span class="nav-link-title fw-medium">Mouvements de stock</span>
+                                </a>
+                            </li>
                             
                             <!-- Rapports -->
                             <li class="nav-item <?php echo (basename($_SERVER['PHP_SELF']) == 'rapports.php') ? 'active' : ''; ?>">

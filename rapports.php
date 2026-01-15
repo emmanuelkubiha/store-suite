@@ -257,13 +257,76 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const reportType = this.getAttribute('data-type');
             if (reportType) {
-                showReportModal(reportType);
+                // If inventaire_depot, show depot selection modal first
+                if (reportType === 'inventaire_depot') {
+                    showDepotSelectionModal(reportType);
+                } else {
+                    showReportModal(reportType);
+                }
             }
         });
     });
 });
 
-function showReportModal(type) {
+function showDepotSelectionModal(reportType) {
+    // Create depot selection modal
+    let depotModal = document.getElementById('depotSelectionModal');
+    
+    if (!depotModal) {
+        const modalHtml = `
+            <div class="modal fade" id="depotSelectionModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Sélectionner un Dépôt</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Dépôt</label>
+                            <select class="form-select" id="depotSelect">
+                                <option value="all">Tous les dépôts</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="button" class="btn btn-primary" id="btnViewDepotReport">Voir le rapport</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        depotModal = document.getElementById('depotSelectionModal');
+        
+        // Load depots list
+        fetch('ajax/get_depots.php')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('depotSelect');
+                    data.depots.forEach(depot => {
+                        const option = document.createElement('option');
+                        option.value = depot.id_depot;
+                        option.textContent = depot.nom_depot + (depot.description ? ' - ' + depot.description : '');
+                        select.appendChild(option);
+                    });
+                }
+            });
+    }
+    
+    // Show modal
+    const bsModal = new bootstrap.Modal(depotModal);
+    bsModal.show();
+    
+    // Handle confirm button
+    document.getElementById('btnViewDepotReport').onclick = function() {
+        const depotId = document.getElementById('depotSelect').value;
+        bsModal.hide();
+        showReportModal(reportType, {id_depot: depotId});
+    };
+}
+
+function showReportModal(type, extraParams = {}) {
     // Create modal if it doesn't exist
     let modal = document.getElementById('reportModal');
     
@@ -299,14 +362,17 @@ function showReportModal(type) {
     const dateFin = params.get('date_fin') || new Date().toISOString().split('T')[0];
     
     // Fetch the report content
+    const formData = new URLSearchParams({
+        type: type,
+        date_debut: dateDebut,
+        date_fin: dateFin,
+        ...extraParams
+    });
+    
     fetch('ajax/get_report.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({
-            type: type,
-            date_debut: dateDebut,
-            date_fin: dateFin
-        })
+        body: formData
     })
     .then(r => r.json())
     .then(data => {
@@ -513,7 +579,15 @@ function showReportModal(type) {
                     <div class="card report-card shadow-sm h-100">
                         <div class="card-body d-flex flex-column">
                             <div class="mb-2">
-                                <h5 class="card-title mb-1">Rapport des ventes</h5>
+                                <h5 class="card-title mb-1">
+                                    Rapport des ventes
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm text-muted ms-1" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" data-bs-toggle="tooltip" title="Liste détaillée de toutes les ventes validées avec montants, clients et produits vendus" style="cursor: help;">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <circle cx="12" cy="12" r="9"/>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                        <polyline points="11 12 12 12 12 16 13 16"/>
+                                    </svg>
+                                </h5>
                                 <p class="small mb-0 text-muted">Tous les détails</p>
                             </div>
                             <div class="mt-auto pt-1 d-flex gap-1">
@@ -545,7 +619,15 @@ function showReportModal(type) {
                     <div class="card report-card shadow-sm h-100">
                         <div class="card-body d-flex flex-column">
                             <div class="mb-2">
-                                <h5 class="card-title mb-1">Inventaire produits</h5>
+                                <h5 class="card-title mb-1">
+                                    Inventaire produits
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm text-muted ms-1" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" data-bs-toggle="tooltip" title="Liste complète de tous les produits avec stocks, prix de vente et informations" style="cursor: help;">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <circle cx="12" cy="12" r="9"/>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                        <polyline points="11 12 12 12 12 16 13 16"/>
+                                    </svg>
+                                </h5>
                                 <p class="small mb-0 text-muted">Catalogue complet</p>
                             </div>
                             <div class="mt-auto pt-1 d-flex gap-1">
@@ -638,8 +720,190 @@ function showReportModal(type) {
                     </div>
                 </div>
             </div>
+
+            <!-- ============================================================ -->
+            <!-- SECTION : RAPPORTS DE GESTION DE STOCK -->
+            <!-- ============================================================ -->
+            <div class="mt-4">
+                <h5 class="text-muted mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 21l18 0"/>
+                        <path d="M3 7v1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1h-18l2 -4h14l2 4"/>
+                        <path d="M5 21l0 -10.15"/>
+                        <path d="M19 21l0 -10.15"/>
+                        <path d="M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4"/>
+                    </svg>
+                    Rapports de Gestion de Stock
+                </h5>
+                <div class="row g-2">
+                    <!-- Rapport Inventaire par Dépôt -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card report-card shadow-sm h-100" style="border-left-color: #17a2b8 !important;">
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    <h5 class="card-title mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"/>
+                                            <line x1="12" y1="12" x2="20" y2="7.5"/>
+                                            <line x1="12" y1="12" x2="12" y2="21"/>
+                                            <line x1="12" y1="12" x2="4" y2="7.5"/>
+                                        </svg>
+                                        Inventaire par dépôt
+                                    </h5>
+                                    <p class="small mb-0 text-muted">Localisation des produits</p>
+                                </div>
+                                <div class="mt-auto pt-1 d-flex gap-1">
+                                    <a href="ajax/export_excel.php?type=inventaire_depot" class="btn btn-success btn-sm flex-fill" title="Rapport Excel">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        Excel
+                                    </a>
+                                    <a href="rapport_affichage.php?type=inventaire_depot" target="_blank" class="btn btn-danger btn-sm flex-fill" title="Rapport PDF">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        PDF
+                                    </a>
+                                    <a href="#" class="btn btn-info btn-sm flex-fill btn-voir-rapport" data-type="inventaire_depot" title="Visualiser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667 -6.667 7 -11 7s-8.333 -2.333 -11 -7c2.667 -4.667 6.667 -7 11 -7s8.333 2.333 11 7"/>
+                                        </svg>
+                                        Voir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rapport Mouvements de Stock -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card report-card shadow-sm h-100" style="border-left-color: #6f42c1 !important;">
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    <h5 class="card-title mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <polyline points="7 14 12 19 17 14"/>
+                                        </svg>
+                                        Mouvements de stock
+                                    </h5>
+                                    <p class="small mb-0 text-muted">Historique complet</p>
+                                </div>
+                                <div class="mt-auto pt-1 d-flex gap-1">
+                                    <a href="ajax/export_excel.php?type=mouvements_stock&date_debut=<?php echo $date_debut; ?>&date_fin=<?php echo $date_fin; ?>" class="btn btn-success btn-sm flex-fill" title="Rapport Excel">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        Excel
+                                    </a>
+                                    <a href="rapport_affichage.php?type=mouvements_stock&date_debut=<?php echo $date_debut; ?>&date_fin=<?php echo $date_fin; ?>" target="_blank" class="btn btn-danger btn-sm flex-fill" title="Rapport PDF">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        PDF
+                                    </a>
+                                    <a href="#" class="btn btn-info btn-sm flex-fill btn-voir-rapport" data-type="mouvements_stock" title="Visualiser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667 -6.667 7 -11 7s-8.333 -2.333 -11 -7c2.667 -4.667 6.667 -7 11 -7s8.333 2.333 11 7"/>
+                                        </svg>
+                                        Voir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rapport Valeur du Stock (Admin seulement) -->
+                    <?php if ($is_admin): ?>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card report-card shadow-sm h-100" style="border-left-color: #28a745 !important;">
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    <h5 class="card-title mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M16.7 8a3 3 0 0 0 -2.7 -2h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1 -2.7 -2"/>
+                                            <path d="M12 3v3m0 12v3"/>
+                                        </svg>
+                                        Valeur du stock
+                                    </h5>
+                                    <p class="small mb-0 text-muted">Valorisation complète</p>
+                                    <span class="badge bg-warning-lt mt-1" style="font-size: 0.65rem;">Admin</span>
+                                </div>
+                                <div class="mt-auto pt-1 d-flex gap-1">
+                                    <a href="ajax/export_excel.php?type=valeur_stock" class="btn btn-success btn-sm flex-fill" title="Rapport Excel">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        Excel
+                                    </a>
+                                    <a href="rapport_affichage.php?type=valeur_stock" target="_blank" class="btn btn-danger btn-sm flex-fill" title="Rapport PDF">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        PDF
+                                    </a>
+                                    <a href="#" class="btn btn-info btn-sm flex-fill btn-voir-rapport" data-type="valeur_stock" title="Visualiser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667 -6.667 7 -11 7s-8.333 -2.333 -11 -7c2.667 -4.667 6.667 -7 11 -7s8.333 2.333 11 7"/>
+                                        </svg>
+                                        Voir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Rapport Alertes Stock -->
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card report-card shadow-sm h-100" style="border-left-color: #dc3545 !important;">
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    <h5 class="card-title mb-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm me-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M12 9v2m0 4v.01"/>
+                                            <path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/>
+                                        </svg>
+                                        Alertes & Ruptures
+                                    </h5>
+                                    <p class="small mb-0 text-muted">Stock faible/critique</p>
+                                </div>
+                                <div class="mt-auto pt-1 d-flex gap-1">
+                                    <a href="ajax/export_excel.php?type=alertes_stock" class="btn btn-success btn-sm flex-fill" title="Rapport Excel">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        Excel
+                                    </a>
+                                    <a href="rapport_affichage.php?type=alertes_stock" target="_blank" class="btn btn-danger btn-sm flex-fill" title="Rapport PDF">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                        </svg>
+                                        PDF
+                                    </a>
+                                    <a href="#" class="btn btn-info btn-sm flex-fill btn-voir-rapport" data-type="alertes_stock" title="Visualiser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; margin-right:4px;">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667 -6.667 7 -11 7s-8.333 -2.333 -11 -7c2.667 -4.667 6.667 -7 11 -7s8.333 2.333 11 7"/>
+                                        </svg>
+                                        Voir
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Fin Section Gestion de Stock -->
         </div>
     </div>
+
+    <!-- Section Inventaire Détaillé -->
 
     <!-- Catalogue Produits & Catégories -->
     <div class="row mb-2 g-2">
@@ -1139,6 +1403,14 @@ if (filterCategoriesList) {
         });
     });
 }
+
+// Initialiser les tooltips Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
 </script>
 
 <?php include 'footer.php'; ?>
